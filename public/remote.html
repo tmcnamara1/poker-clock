@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090c0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Poker Clock Remote</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="remote">
+  <div class="r-head">
+    <div class="r-room"><span class="r-dot" id="dot"></span><span id="room">····</span></div>
+    <div class="r-role" id="role">Player</div>
+  </div>
+
+  <section class="r-clockcard is-paused" id="card">
+    <div class="r-level" id="level">Level 1</div>
+    <div class="r-clock" id="clock">--:--</div>
+    <div class="r-paused" id="paused"></div>
+    <div class="r-blinds" id="blinds">– / –</div>
+    <div class="r-ante" id="ante"></div>
+    <div class="r-next">
+      <div><span>Next level</span><b id="next">–</b></div>
+      <div style="text-align:right"><span>Next break</span><b id="nextbreak">–</b></div>
+    </div>
+  </section>
+
+  <div class="tabs r-tabs" id="tabs" hidden>
+    <button class="on" data-t="control">Control</button>
+    <button data-t="structure">Blinds</button>
+    <button data-t="settings">Settings</button>
+  </div>
+
+  <div class="r-pane" data-p="control">
+    <div id="hostcontrols" hidden>
+      <button class="btn btn-primary r-big" id="toggle">Start</button>
+      <div class="r-grid">
+        <button class="btn" data-cmd="prev">⏮ Prev level</button>
+        <button class="btn" data-cmd="next">Next level ⏭</button>
+        <button class="btn" data-cmd="minus">− 1 min</button>
+        <button class="btn" data-cmd="plus">+ 1 min</button>
+        <button class="btn" data-cmd="restartLevel">↺ Restart level</button>
+        <button class="btn" data-cmd="reset">Reset game</button>
+      </div>
+    </div>
+
+    <div class="r-shotlive" id="shotlive" hidden>
+      <div class="l" id="shotlbl">Clock called</div>
+      <div class="n" id="shotnum">30</div>
+      <button class="btn btn-small" id="shotcancel" hidden style="margin-top:8px">Cancel clock</button>
+    </div>
+    <button class="r-callclock" id="callclock">Call the clock<small>Starts a countdown on the big screen</small></button>
+
+    <div class="r-name" id="namebox">
+      <input id="name" maxlength="24" placeholder="Your name (shows when you call the clock)" autocomplete="nickname">
+    </div>
+  </div>
+
+  <div class="r-pane section" data-p="structure" hidden><div id="editor"></div></div>
+  <div class="r-pane section" data-p="settings" hidden>
+    <div id="settings"></div>
+    <div class="section">
+      <h4>Main screen</h4>
+      <p class="hint">Open <b id="displaylink"></b> on the laptop or TV to show the clock. If you started the game from that screen, it's already there.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="missing" hidden>
+    <div class="start-card">
+      <h2>Game not found</h2>
+      <p>Double-check the 4-letter code on the clock screen.</p>
+      <a class="btn btn-primary" href="/" style="text-decoration:none;display:inline-block">Back</a>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script type="module" src="/remote.js"></script>
+</body>
+</html>

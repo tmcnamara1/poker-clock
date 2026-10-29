@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090c0b">
+<title>Poker Clock</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="landing">
+  <div class="landing-card">
+    <h1 class="brand">Poker<br><span>Clock</span></h1>
+    <div class="suits">♠ <span class="r">♥</span> ♣ <span class="r">♦</span></div>
+    <p class="tagline">Put the clock on the big screen. Run it from your phone.<br>Blinds go up on their own.</p>
+
+    <button class="btn btn-primary" id="create">Start a new game on this screen</button>
+    <div id="resume"></div>
+
+    <div class="or">or join a game</div>
+    <form class="join-row" id="join">
+      <input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Room code">
+      <button class="btn" type="submit">Join</button>
+    </form>
+    <div class="err" id="err"></div>
+  </div>
+</main>
+<script type="module">
+  const err = document.getElementById("err");
+  const create = document.getElementById("create");
+
+  create.addEventListener("click", async () => {
+    create.disabled = true;
+    create.textContent = "Setting up the table…";
+    try {
+      const res = await fetch("/api/rooms", { method: "POST" });
+      if (!res.ok) throw new Error();
+      const { code, hostKey } = await res.json();
+      localStorage.setItem(`pc:host:${code}`, hostKey);
+      localStorage.setItem("pc:last", code);
+      location.href = `/d/${code}`;
+    } catch {
+      err.textContent = "Couldn't create a game. Check your connection and try again.";
+      create.disabled = false;
+      create.textContent = "Start a new game on this screen";
+    }
+  });
+
+  const last = localStorage.getItem("pc:last");
+  if (last && localStorage.getItem(`pc:host:${last}`)) {
+    document.getElementById("resume").innerHTML =
+      `<p class="hint" style="margin-top:14px">Hosting game <b>${last}</b>? <a href="/d/${last}" style="color:var(--gold)">Reopen its clock</a></p>`;
+  }
+
+  const input = document.getElementById("code");
+  input.addEventListener("input", () => { input.value = input.value.toUpperCase().replace(/[^A-Z]/g, ""); err.textContent = ""; });
+  document.getElementById("join").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = input.value.trim().toUpperCase();
+    if (code.length !== 4) { err.textContent = "Room codes are 4 letters."; return; }
+    const res = await fetch(`/api/rooms/${code}`);
+    if (res.ok) location.href = `/r/${code}`;
+    else err.textContent = `No game found with code ${code}.`;
+  });
+</script>
+</body>
+</html>

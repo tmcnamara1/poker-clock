@@ -1,0 +1,16 @@
+{
+  "name": "poker-clock",
+  "version": "0.1.0",
+  "description": "Poker tournament clock with phone remote, on Cloudflare Workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node tests/sync.test.mjs"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "wrangler": "^4.155.0"
+  },
+  "private": true,
+  "type": "module"
+}

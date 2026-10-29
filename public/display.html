@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090c0b">
+<title>Poker Clock</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script src="/vendor/qrcode.js"></script>
+</head>
+<body>
+<div class="display is-paused" id="display">
+  <header class="d-top">
+    <div style="min-width:0">
+      <div class="d-title" id="title">Poker Night</div>
+      <div class="d-level" id="level">Level 1</div>
+    </div>
+    <div class="d-join">
+      <div class="d-join-text"><small>Join on your phone</small><b id="joincode">····</b></div>
+      <div class="d-qr" id="joinqr"></div>
+    </div>
+  </header>
+
+  <section class="d-main">
+    <div class="d-state-badge" id="badge"></div>
+    <div class="d-clock" id="clock">--:--</div>
+    <div class="d-progress"><i id="progress"></i></div>
+    <div class="d-blinds-label" id="blindslabel">Blinds</div>
+    <div class="d-blinds" id="blinds">– / –</div>
+    <div class="d-ante" id="ante"></div>
+  </section>
+
+  <footer class="d-bottom">
+    <div class="d-stat"><small>Next level</small><b id="next">–</b></div>
+    <div class="d-stat"><small>Next break</small><b id="nextbreak">–</b></div>
+    <div class="d-stat"><small>Time now</small><b id="now">–</b></div>
+  </footer>
+
+  <div class="d-controls" id="controls" hidden>
+    <button class="btn" data-cmd="prev" title="Previous level (←)">⏮</button>
+    <button class="btn" data-cmd="minus" title="−1 minute (↓)">−1m</button>
+    <button class="btn btn-primary" data-cmd="toggle" id="playbtn" title="Start / pause (space)">Start</button>
+    <button class="btn" data-cmd="plus" title="+1 minute (↑)">+1m</button>
+    <button class="btn" data-cmd="next" title="Next level (→)">⏭</button>
+    <button class="btn" data-cmd="callClock" title="Call the clock (C)">⏱</button>
+    <button class="btn" data-cmd="drawer" title="Settings (S)">⚙</button>
+  </div>
+  <div class="d-status" id="status">Reconnecting…</div>
+</div>
+
+<!-- start overlay: browsers require a click before sound can play -->
+<div class="overlay" id="start">
+  <div class="start-card">
+    <h2>Clock is ready</h2>
+    <div class="room-big" id="startcode">····</div>
+    <p id="startmsg">Click below to turn on sound and keep this screen awake. Then scan the QR code in the corner with your phone to control the game.</p>
+    <button class="btn btn-primary" id="startbtn">Turn on the clock</button>
+    <p class="hint" style="margin-top:22px" id="keyshint">Keyboard: <kbd>Space</kbd> start/pause · <kbd>←</kbd><kbd>→</kbd> level · <kbd>↑</kbd><kbd>↓</kbd> ±1 min · <kbd>C</kbd> call the clock · <kbd>S</kbd> settings · <kbd>F</kbd> fullscreen</p>
+  </div>
+</div>
+
+<!-- missing room -->
+<div class="overlay" id="missing" hidden>
+  <div class="start-card">
+    <h2>Game not found</h2>
+    <p>This room code doesn't exist. It may have been typed wrong.</p>
+    <a class="btn btn-primary" href="/" style="text-decoration:none;display:inline-block">Start a new game</a>
+  </div>
+</div>
+
+<!-- shot clock takeover -->
+<div class="shot" id="shot" hidden>
+  <button class="btn btn-small shot-cancel" id="shotcancel" hidden>Cancel</button>
+  <div class="shot-label" id="shotlabel">Clock called</div>
+  <div class="shot-by" id="shotby"></div>
+  <div class="shot-num" id="shotnum">30</div>
+  <div class="shot-bg-clock" id="shotbg"></div>
+</div>
+
+<!-- settings drawer (host only) -->
+<aside class="drawer" id="drawer" aria-label="Game settings">
+  <div class="drawer-head">
+    <h3>Game setup</h3>
+    <button class="btn btn-small" id="drawerclose">Close</button>
+  </div>
+  <div class="drawer-body">
+    <div class="tabs" id="dtabs">
+      <button class="on" data-t="structure">Blinds</button>
+      <button data-t="settings">Settings</button>
+      <button data-t="pair">Host phone</button>
+    </div>
+    <div data-p="structure" class="section"><div id="editor"></div></div>
+    <div data-p="settings" class="section" hidden><div id="settings"></div></div>
+    <div data-p="pair" class="section" hidden>
+      <div class="pair">
+        <div class="qr" id="hostqr"></div>
+        <div>
+          <p><b>Scan with your phone to control the game.</b> This link gives full host control, so keep it to yourself. Players should use the QR code on the main screen instead. They can only see the clock and call the clock.</p>
+          <code id="hostlink"></code>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<script type="module" src="/display.js"></script>
+</body>
+</html>
