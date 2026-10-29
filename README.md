@@ -59,5 +59,7 @@ Keyboard shortcuts on the main screen: `Space` start/pause · `←` `→` previo
 ## Roadmap ideas
 
 - Bust-out button with an elimination animation and a players-remaining count
-- Player list, rebuys and add-ons, payout calculator
+- Player list, rebuys and add-ons
+- Payout calculator
 - Blind structure generator based on chip set and target game length
+- Stream music during the game
