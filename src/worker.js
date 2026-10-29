@@ -4,13 +4,15 @@
 
 import { DurableObject } from "cloudflare:workers";
 import { DEFAULT_LEVELS, normalizeLevels } from "../public/structure.js";
+import { ADJECTIVES, NOUNS, normalizeCode } from "../public/words.js";
 
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I / O
 const MAX_MSG_BYTES = 32_000;
+const CODE_RE = "([A-Za-z]{2,12}-[A-Za-z]{2,12})";
+const ROOM_IDLE_REUSE_MS = 3 * 24 * 60 * 60 * 1000; // a code can be reused after 3 idle days
 
-function randomCode(len = 4) {
-  const bytes = crypto.getRandomValues(new Uint8Array(len));
-  return [...bytes].map((b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
+function randomCode() {
+  const [a, b] = crypto.getRandomValues(new Uint32Array(2));
+  return `${ADJECTIVES[a % ADJECTIVES.length]}-${NOUNS[b % NOUNS.length]}`;
 }
 
 function randomKey() {
@@ -31,7 +33,7 @@ export default {
 
     // Create a new game room
     if (path === "/api/rooms" && request.method === "POST") {
-      for (let attempt = 0; attempt < 8; attempt++) {
+      for (let attempt = 0; attempt < 12; attempt++) {
         const code = randomCode();
         const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
         const res = await stub.fetch("https://room/init", {
@@ -40,34 +42,34 @@ export default {
         });
         if (res.status === 200) return json(await res.json());
       }
-      return json({ error: "Could not allocate a room code" }, 503);
+      return json({ error: "Could not allocate a game code" }, 503);
     }
 
     // Check that a room exists (used by the join screen)
-    let m = path.match(/^\/api\/rooms\/([A-Z]{4})$/i);
+    let m = path.match(new RegExp(`^/api/rooms/${CODE_RE}$`));
     if (m && request.method === "GET") {
-      const code = m[1].toUpperCase();
+      const code = normalizeCode(m[1]);
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
       const res = await stub.fetch("https://room/exists");
       return json({ exists: res.status === 200 }, res.status === 200 ? 200 : 404);
     }
 
     // WebSocket connection to a room
-    m = path.match(/^\/ws\/([A-Z]{4})$/i);
+    m = path.match(new RegExp(`^/ws/${CODE_RE}$`));
     if (m) {
       if (request.headers.get("Upgrade") !== "websocket") {
         return new Response("Expected WebSocket", { status: 426 });
       }
-      const code = m[1].toUpperCase();
+      const code = normalizeCode(m[1]);
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
       return stub.fetch(request);
     }
 
-    // Pretty URLs: /d/ABCD -> display page, /r/ABCD -> remote page
-    if (/^\/d\/[A-Z]{4}\/?$/i.test(path)) {
+    // Pretty URLs: /d/lucky-river -> display page, /r/lucky-river -> remote page
+    if (new RegExp(`^/d/${CODE_RE}/?$`).test(path)) {
       return env.ASSETS.fetch(new Request(new URL("/display", url), request));
     }
-    if (/^\/r\/[A-Z]{4}\/?$/i.test(path)) {
+    if (new RegExp(`^/r/${CODE_RE}/?$`).test(path)) {
       return env.ASSETS.fetch(new Request(new URL("/remote", url), request));
     }
 
@@ -89,7 +91,12 @@ export class Room extends DurableObject {
     const url = new URL(request.url);
 
     if (url.pathname === "/init") {
-      if (this.state) return new Response("exists", { status: 409 });
+      if (this.state) {
+        // Codes are reusable once an old game has sat untouched for a few days
+        const idle = Date.now() - (this.state.updatedAt || this.state.created);
+        if (this.state.running || idle < ROOM_IDLE_REUSE_MS) return new Response("exists", { status: 409 });
+        for (const ws of this.ctx.getWebSockets()) { try { ws.close(4410, "Game expired"); } catch {} }
+      }
       const { code, hostKey } = await request.json();
       const levels = normalizeLevels(DEFAULT_LEVELS);
       this.state = {
@@ -342,11 +349,12 @@ export class Room extends DurableObject {
 
   // ---------- Helpers ----------
   async save() {
+    this.state.updatedAt = Date.now();
     await this.ctx.storage.put("state", this.state);
   }
 
   publicState() {
-    const { hostKey, lastShotEnd, ...rest } = this.state;
+    const { hostKey, lastShotEnd, updatedAt, ...rest } = this.state;
     return rest;
   }
 

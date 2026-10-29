@@ -51,10 +51,57 @@
 
 <!-- start overlay: browsers require a click before sound can play -->
 <div class="overlay" id="start">
-  <div class="start-card">
-    <h2>Clock is ready</h2>
+  <div class="start-card setup-card">
+    <div class="code-label">Your Game Code</div>
     <div class="room-big" id="startcode">····</div>
-    <p id="startmsg">Click below to turn on sound and keep this screen awake. Then scan the QR code in the corner with your phone to control the game.</p>
+
+    <div class="setup-grid" id="setupgrid" hidden>
+      <div class="setup-qr">
+        <div class="qr" id="setupqr"></div>
+        <b>Scan to run the game from your phone</b>
+        <span>This phone becomes the host remote. Players scan the code in the corner of the clock.</span>
+      </div>
+
+      <div class="setup-form" id="setupform">
+        <div class="setup-row">
+          <label>Level length</label>
+          <div class="setup-ctl">
+            <span class="seg" id="su-minseg">
+              <button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button>
+            </span>
+            <span class="su-custom"><input id="su-min" inputmode="numeric" aria-label="Minutes per level"> min</span>
+          </div>
+        </div>
+        <div class="setup-row">
+          <label for="su-break">First break</label>
+          <div class="setup-ctl">
+            <select id="su-break">
+              <option value="2">After level 2</option><option value="3">After level 3</option>
+              <option value="4">After level 4</option><option value="5">After level 5</option>
+              <option value="6">After level 6</option><option value="8">After level 8</option>
+              <option value="0">No breaks</option>
+            </select>
+            <span class="su-note" id="su-breaknote"></span>
+          </div>
+        </div>
+        <div class="setup-row">
+          <label>Starting blinds</label>
+          <div class="setup-ctl">
+            <span class="seg" id="su-blindseg">
+              <button data-sb="5" data-bb="10">5/10</button><button data-sb="25" data-bb="50">25/50</button><button data-sb="50" data-bb="100">50/100</button><button data-sb="100" data-bb="200">100/200</button>
+            </span>
+            <span class="su-custom"><input id="su-sb" inputmode="numeric" aria-label="Small blind"> / <input id="su-bb" inputmode="numeric" aria-label="Big blind"></span>
+          </div>
+        </div>
+        <div class="su-preview" id="su-preview"></div>
+      </div>
+      <div class="setup-form setup-inprogress" id="setupinprogress" hidden>
+        <b>This game is already underway.</b>
+        <span>The blinds and timer were left exactly where they are. You can still change the structure anytime in Settings (<kbd>S</kbd>).</span>
+      </div>
+    </div>
+
+    <p id="startmsg"></p>
     <button class="btn btn-primary" id="startbtn">Turn on the clock</button>
     <p class="hint" style="margin-top:22px" id="keyshint">Keyboard: <kbd>Space</kbd> start/pause · <kbd>←</kbd><kbd>→</kbd> level · <kbd>↑</kbd><kbd>↓</kbd> ±1 min · <kbd>C</kbd> call the clock · <kbd>S</kbd> settings · <kbd>F</kbd> fullscreen</p>
   </div>
@@ -64,7 +111,7 @@
 <div class="overlay" id="missing" hidden>
   <div class="start-card">
     <h2>Game not found</h2>
-    <p>This room code doesn't exist. It may have been typed wrong.</p>
+    <p>No game exists with this game code. It may have been typed wrong.</p>
     <a class="btn btn-primary" href="/" style="text-decoration:none;display:inline-block">Start a new game</a>
   </div>
 </div>

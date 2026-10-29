@@ -20,9 +20,10 @@ function client(code, key) {
 
 const res = await fetch(`${BASE}/api/rooms`, { method: "POST" });
 const { code, hostKey } = await res.json();
-ok(/^[A-Z]{4}$/.test(code) && hostKey, `room created ${code}`);
+ok(/^[a-z]+-[a-z]+$/.test(code) && hostKey, `room created ${code}`);
 ok((await fetch(`${BASE}/api/rooms/${code}`)).status === 200, "room exists check");
-ok((await fetch(`${BASE}/api/rooms/ZZZZ`)).status === 404, "missing room 404");
+ok((await fetch(`${BASE}/api/rooms/zzzz-zzzz`)).status === 404, "missing room 404");
+ok((await fetch(`${BASE}/api/rooms/${code.toUpperCase()}`)).status === 200, "code works in any case");
 ok((await fetch(`${BASE}/d/${code}`)).status === 200, "display page served");
 ok((await fetch(`${BASE}/r/${code}`)).status === 200, "remote page served");
 

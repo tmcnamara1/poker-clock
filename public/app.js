@@ -1,7 +1,7 @@
 // Shared browser code: connection + clock sync, formatting, sound, announcer, structure editor.
 
-import { PRESETS, levelNumber, totalLevels } from "./structure.js";
-export { PRESETS, levelNumber, totalLevels };
+import { PRESETS, levelNumber, totalLevels, generateStructure, describeStructure } from "./structure.js";
+export { PRESETS, levelNumber, totalLevels, generateStructure, describeStructure };
 
 // ---------------------------------------------------------------- connection
 export class RoomConnection {
@@ -476,8 +476,8 @@ export async function keepAwake() {
 }
 
 export function codeFromPath() {
-  const m = location.pathname.match(/\/(?:d|r)\/([A-Za-z]{4})/);
-  return m ? m[1].toUpperCase() : null;
+  const m = location.pathname.match(/\/(?:d|r)\/([A-Za-z]{2,12}-[A-Za-z]{2,12})/);
+  return m ? m[1].toLowerCase() : null;
 }
 
 export function store(key, value) {

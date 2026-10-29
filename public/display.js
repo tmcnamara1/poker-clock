@@ -1,7 +1,7 @@
 import {
   RoomConnection, fmtClock, fmtNum, remainingMs, blindsText, timeToBreak, nextPlayingLevel,
   levelNumber, totalLevels, audioUnlock, sounds, announce, qrSvg, mountEditor, mountSettings,
-  keepAwake, codeFromPath, store,
+  keepAwake, codeFromPath, store, generateStructure, describeStructure,
 } from "/app.js";
 
 const $ = (id) => document.getElementById(id);
@@ -27,17 +27,93 @@ $("joinqr").innerHTML = qrSvg(playerUrl);
 if (isHost) {
   const hostUrl = `${location.origin}/r/${code}#k=${hostKey}`;
   $("hostqr").innerHTML = qrSvg(hostUrl);
+  $("setupqr").innerHTML = qrSvg(hostUrl);
   $("hostlink").textContent = hostUrl;
   $("controls").hidden = false;
-  $("startmsg").textContent =
-    "Click below to turn on sound and keep this screen awake. To run the game from your phone, open Settings (⚙) → Host phone and scan that code.";
+  $("setupgrid").hidden = false;
+  $("startmsg").textContent = "Turning on the clock enables sound and keeps this screen awake. The timer won't start until you press Start.";
 } else {
   $("keyshint").hidden = true;
   $("startmsg").textContent = "This screen will follow the game. Click to turn on sound.";
 }
 
+// ------------------------------------------------------------ setup screen (host, before the game starts)
+const setup = { startSb: 25, startBb: 50, levelMin: 20, breakAfter: 4, breakMin: 10 };
+let setupLoaded = false;
+let setupTouched = false;
+
+const notStarted = (s) => s.levelIndex === 0 && !s.running && !s.finished && s.remainingMs === s.levels[0].min * 60000;
+
+function loadSetup() {
+  if (setupLoaded || !state || !isHost) return;
+  setupLoaded = true;
+  Object.assign(setup, describeStructure(state.levels));
+  const fresh = notStarted(state);
+  $("setupform").hidden = !fresh;
+  $("setupinprogress").hidden = fresh;
+  if (!fresh) $("startmsg").textContent = "Turning on the clock enables sound and keeps this screen awake.";
+  const sel = $("su-break");
+  if (![...sel.options].some((o) => +o.value === setup.breakAfter)) {
+    sel.add(new Option(`After level ${setup.breakAfter}`, setup.breakAfter), sel.options[sel.options.length - 1]);
+  }
+  paintSetup();
+}
+
+function paintSetup() {
+  $("su-min").value = setup.levelMin;
+  $("su-sb").value = setup.startSb;
+  $("su-bb").value = setup.startBb;
+  $("su-break").value = String(setup.breakAfter);
+  $("su-minseg").querySelectorAll("button").forEach((b) => b.classList.toggle("on", +b.dataset.v === setup.levelMin));
+  $("su-blindseg").querySelectorAll("button").forEach((b) =>
+    b.classList.toggle("on", +b.dataset.sb === setup.startSb && +b.dataset.bb === setup.startBb));
+  const hm = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
+  $("su-breaknote").textContent = setup.breakAfter ? `starts ${hm(setup.breakAfter * setup.levelMin)} into the game` : "";
+
+  const levels = generateStructure(setup);
+  const play = levels.filter((l) => !l.brk);
+  const at = (n) => play[Math.min(n, play.length) - 1];
+  const totalMin = levels.reduce((a, l) => a + l.min, 0);
+  $("su-preview").innerHTML =
+    `Level 1 <b>${blindsText(at(1))}</b> → level 4 <b>${blindsText(at(4))}</b> → level 8 <b>${blindsText(at(8))}</b> → level 12 <b>${blindsText(at(12))}</b><br>` +
+    `${play.length} levels${setup.breakAfter ? `, ${setup.breakMin}-minute breaks every ${setup.breakAfter} levels` : ", no breaks"} · about ${(totalMin / 60).toFixed(1)} hours if it runs to the end.`;
+}
+
+function touch() { setupTouched = true; paintSetup(); }
+
+$("su-minseg").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  setup.levelMin = +b.dataset.v; touch();
+});
+$("su-min").addEventListener("input", (e) => {
+  const v = Math.round(+e.target.value.replace(/\D/g, ""));
+  if (v >= 1 && v <= 240) { setup.levelMin = v; setupTouched = true; paintSetupKeepFocus(); }
+});
+$("su-break").addEventListener("change", (e) => { setup.breakAfter = +e.target.value; touch(); });
+$("su-blindseg").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  setup.startSb = +b.dataset.sb; setup.startBb = +b.dataset.bb; touch();
+});
+for (const id of ["su-sb", "su-bb"]) {
+  $(id).addEventListener("input", () => {
+    const sb = Math.round(+$("su-sb").value.replace(/\D/g, ""));
+    const bb = Math.round(+$("su-bb").value.replace(/\D/g, ""));
+    if (sb >= 1 && bb > sb) { setup.startSb = sb; setup.startBb = bb; setupTouched = true; paintSetupKeepFocus(); }
+  });
+}
+// repaint everything except the field being typed in
+function paintSetupKeepFocus() {
+  const active = document.activeElement;
+  const val = active && active.value;
+  paintSetup();
+  if (active && active.tagName === "INPUT") active.value = val;
+}
+
 $("startbtn").addEventListener("click", async () => {
   audioUnlock();
+  if (isHost && setupTouched && state && notStarted(state)) {
+    conn.send("setStructure", { levels: generateStructure(setup) });
+  }
   started = true;
   $("start").hidden = true;
   keepAwake();
@@ -53,6 +129,7 @@ conn = new RoomConnection(code, hostKey, onMessage, (status) => {
 function onMessage(msg) {
   const prev = state;
   state = msg.state;
+  loadSetup();
   if (isHost && !editor) {
     editor = mountEditor($("editor"), () => state.levels, (levels) => conn.send("setStructure", { levels }));
     settingsPanel = mountSettings($("settings"), () => state.settings, (cmd, x) => conn.send(cmd, x), {

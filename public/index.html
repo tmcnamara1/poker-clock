@@ -20,13 +20,14 @@
 
     <div class="or">or join a game</div>
     <form class="join-row" id="join">
-      <input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Room code">
+      <input id="code" maxlength="30" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="lucky-river" aria-label="Game code">
       <button class="btn" type="submit">Join</button>
     </form>
     <div class="err" id="err"></div>
   </div>
 </main>
 <script type="module">
+  import { normalizeCode } from "/words.js";
   const err = document.getElementById("err");
   const create = document.getElementById("create");
 
@@ -48,20 +49,20 @@
   });
 
   const last = localStorage.getItem("pc:last");
-  if (last && localStorage.getItem(`pc:host:${last}`)) {
+  if (last && normalizeCode(last) === last && localStorage.getItem(`pc:host:${last}`)) {
     document.getElementById("resume").innerHTML =
       `<p class="hint" style="margin-top:14px">Hosting game <b>${last}</b>? <a href="/d/${last}" style="color:var(--gold)">Reopen its clock</a></p>`;
   }
 
   const input = document.getElementById("code");
-  input.addEventListener("input", () => { input.value = input.value.toUpperCase().replace(/[^A-Z]/g, ""); err.textContent = ""; });
+  input.addEventListener("input", () => { input.value = input.value.toLowerCase().replace(/[^a-z\s-]/g, ""); err.textContent = ""; });
   document.getElementById("join").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const code = input.value.trim().toUpperCase();
-    if (code.length !== 4) { err.textContent = "Room codes are 4 letters."; return; }
+    const code = normalizeCode(input.value);
+    if (!code) { err.textContent = "Game codes are two words, like lucky-river."; return; }
     const res = await fetch(`/api/rooms/${code}`);
     if (res.ok) location.href = `/r/${code}`;
-    else err.textContent = `No game found with code ${code}.`;
+    else err.textContent = `No game found called ${code}.`;
   });
 </script>
 </body>

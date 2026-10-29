@@ -48,9 +48,11 @@ To deploy manually instead, run `npx wrangler login` and then `npm run deploy`.
 
 ## Usage
 
-1. Open the site on the laptop or TV and click **Start a new game on this screen**, then **Turn on the clock**.
-2. Press `S` (or click ⚙) and choose **Host phone**. Scan that QR code with your phone to become the host.
-3. Players scan the QR code in the corner of the main screen.
+1. Open the site on the laptop or TV and click **Start a new game on this screen**. You get a two-word game code like `lucky-river`.
+   - The setup screen shows a QR code for your phone, plus quick choices for level length, the first break, and the starting blinds.
+   - Click **Turn on the clock** when you're ready.
+2. Scan the setup screen's QR code with your phone to become the host. You can also find it later under `S` (or ⚙) → **Host phone**.
+3. Players scan the QR code in the corner of the main screen, or type the game code on the home page.
 
 Keyboard shortcuts on the main screen: `Space` start/pause · `←` `→` previous/next level · `↑` `↓` ±1 minute · `C` call the clock · `S` settings · `F` fullscreen.
 
