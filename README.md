@@ -62,4 +62,3 @@ Keyboard shortcuts on the main screen: `Space` start/pause · `←` `→` previo
 - Player list, rebuys and add-ons
 - Payout calculator
 - Blind structure generator based on chip set and target game length
-- Stream music during the game
