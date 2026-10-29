@@ -62,3 +62,4 @@ Keyboard shortcuts on the main screen: `Space` start/pause · `←` `→` previo
 - Player list, rebuys and add-ons
 - Payout calculator
 - Blind structure generator based on chip set and target game length
+- Music player: host signs into their YouTube account on the TV, picks a playlist, and it plays through the TV speakers. Ad-free automatically if they have YouTube Premium. Volume ducks when the blinds announcer fires.
