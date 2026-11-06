@@ -308,6 +308,213 @@ const spoken = (n) => fmtNum(n);
 const blindsSpoken = (l) =>
   `${spoken(l.sb)}, ${spoken(l.bb)}` + (l.ante ? `, with an ante of ${spoken(l.ante)}` : "");
 
+// ---------------------------------------------------------------- player roster
+export const DEFAULT_PLAYERS = ["Scotty", "Eddie", "Bywater", "Pels", "Tmac", "Daniels", "Ty"];
+
+// Per-player trash talk lines. Each array entry is a function so they read naturally.
+// 'bust' fires when the player is eliminated.
+// 'levelUp' fires (sometimes) when a new blind level starts and that player is still in.
+// Add "Tmac" only gets praised — never insulted.
+const PLAYER_LINES = {
+  Scotty: {
+    levelUp: [
+      () => "Scotty, before you do it — that is NOT a good hand to shove with.",
+      () => "Scotty sees the new blinds and immediately starts counting his chips to shove. We see you.",
+      () => "New level, and somewhere Scotty is already reaching for his stack. Calm down.",
+      () => "Scotty, I know what you're thinking. Don't. Just… don't.",
+      () => "Every new level, Scotty gets that look in his eye. The 'I'm going all in on garbage' look.",
+    ],
+    bust: [
+      () => "Scotty is out. He went all in. Of course he did. That's literally all he does.",
+      () => "And Scotty has been eliminated. He pushed all his chips in and lost. SHOCKED. Absolutely shocked.",
+      () => "Scotty is busted. He shoved again, they called, and that's the game for the most aggressive man at the table.",
+    ],
+  },
+  Eddie: {
+    levelUp: [
+      () => "Eddie, statistically speaking, you are due for a win. Statistically. It hasn't happened yet, but mathematically…",
+      () => "New level. Eddie still hasn't won a hand. The drought continues.",
+      () => "Eddie is about to tell you about a bad beat. Brace yourselves.",
+      () => "Eddie's here. Still trying. Still losing. Still complaining about it.",
+      () => "New blinds. Eddie would like you to know that his last loss was absolutely not his fault.",
+    ],
+    bust: [
+      () => "Eddie is out. And we can all expect a detailed breakdown of exactly why it wasn't his fault.",
+      () => "Eddie has been eliminated. His bad beat story begins… now.",
+      () => "Eddie busted. This will be talked about for the rest of the night. Probably the rest of the month.",
+    ],
+  },
+  Bywater: {
+    levelUp: [
+      () => "Bywater has a message for the table. It's unprintable, but we all know what it is.",
+      () => "New level. Bywater would like everyone to — and I quote — suck it.",
+      () => "Bywater's poker strategy is simple: suck it.",
+      () => "Bywater looking around the table with that look. You know the look. It says 'suck it.'",
+      () => "Bywater's playing well. His commentary remains consistent. Two words. Classic.",
+    ],
+    bust: [
+      () => "Bywater is out! He has one final message for the table. Everyone say it together: suck it.",
+      () => "Bywater has been eliminated. His parting words are, as always, suck it.",
+      () => "Bywater busted. He wants the winner to know: suck it.",
+    ],
+  },
+  Pels: {
+    levelUp: [
+      () => "Pels, you doing okay over there? You seem very relaxed. Very, very relaxed.",
+      () => "New level. Pels would like to know if anyone has any snacks.",
+      () => "Pels is in a great mood. A suspiciously great mood.",
+      () => "Pels is vibing. That's all we'll say about that.",
+      () => "New blinds. Pels isn't stressed about it. Pels isn't stressed about anything.",
+    ],
+    bust: [
+      () => "Pels is out. He seems fine with it. Very zen. Almost too zen.",
+      () => "Pels has been eliminated and is handling it remarkably well. Suspiciously well.",
+      () => "Pels busted. He's already forgotten it happened.",
+    ],
+  },
+  Tmac: {
+    levelUp: [
+      () => "T-Mac is at the table, which means somebody is losing to greatness tonight.",
+      () => "New level. T-Mac is still in. As expected. As it should be.",
+      () => "T-Mac studies the new blinds, nods, and continues being the best player at this table.",
+      () => "New blinds. T-Mac's chip stack remains magnificent.",
+      () => "The blinds are up. T-Mac is unbothered. Champions don't sweat the small stuff.",
+      () => "T-Mac with another level survived. This is a man who was simply built for this game.",
+    ],
+    bust: [
+      // Tmac shouldn't bust, but just in case...
+      () => "T-Mac has been eliminated, which means the deck cheated. There is no other explanation.",
+      () => "T-Mac is out? T-MAC IS OUT? This game has been rigged. Alert the authorities.",
+    ],
+  },
+  Daniels: {
+    levelUp: [
+      () => "Daniels, it's a new level. That means you have to actually play a hand eventually. This level, maybe.",
+      () => "New blinds. Daniels has thoughts about this. Many, many thoughts he'd like to share with the group.",
+      () => "Daniels is mid-sentence. He has been mid-sentence for the last four hands.",
+      () => "New level. Daniels still hasn't decided what he's having for dinner, let alone what to do with his hand.",
+      () => "Daniels would like everyone to know his opinion on something. Unfortunately, it's not poker-related.",
+      () => "New blinds. Daniels is thinking. He's been thinking. He'll continue thinking until the clock runs out.",
+      () => "Daniels. It's your turn. It has been your turn. It will be your turn for another four minutes apparently.",
+    ],
+    bust: [
+      () => "Daniels is out. He spent so long deliberating that the blinds just ate him alive. Poetic.",
+      () => "Daniels has been eliminated. We'd like to say it was quick, but nothing involving Daniels is quick.",
+      () => "Daniels busted. He'd like to explain, in detail, the thought process behind every decision he made tonight. Clear your schedule.",
+    ],
+  },
+  Ty: {
+    levelUp: [
+      () => "Ty is at the table, believing with his whole chest that he cannot lose. He can. He very much can.",
+      () => "New level. Ty has entered his Superman arc. Someone's about to find the kryptonite.",
+      () => "Ty looking at his cards like he already knows they're the best cards. They might not be, Ty.",
+      () => "New blinds. Ty is unfazed, because Ty does not understand the concept of being fased.",
+      () => "Ty. Buddy. You are not, in fact, Superman. This is a poker game. Please check in.",
+      () => "New level. Ty thinks he's invincible. The table is about to run an experiment.",
+    ],
+    bust: [
+      () => "Ty is out. Even Superman has a weakness, and apparently Ty's is bluffing with nothing.",
+      () => "Ty has been eliminated. The Man of Steel has fallen. The kryptonite was a decent hand.",
+      () => "Ty busted. It turns out you are not Superman, Ty. You were never Superman. We love you though.",
+    ],
+  },
+};
+
+// Returns lines for a specific player if they're in the active roster, or null
+function playerLine(kind, name) {
+  const p = PLAYER_LINES[name];
+  if (!p || !p[kind] || !p[kind].length) return null;
+  return pick(p[kind])();
+}
+
+// Sometimes (not always) fire a player-specific callout on level up
+export function maybePlayerCallout(mode, activePlayers, busted) {
+  if (mode === "off" || !activePlayers || !activePlayers.length) return;
+  // 40% chance of a player-specific callout on level up
+  if (Math.random() > 0.4) return;
+  const eligible = activePlayers.filter(p => !busted?.includes(p) && PLAYER_LINES[p]?.levelUp?.length);
+  if (!eligible.length) return;
+  const name = pick(eligible);
+  const line = playerLine("levelUp", name);
+  if (line) say(line, { delay: 4500 }); // fires after the main level-up announcement
+}
+
+export function bustCallout(mode, name) {
+  if (mode === "off") return;
+  const line = playerLine("bust", name);
+  if (line) say(line, { delay: 500 });
+  else say(`${name} is out!`, { delay: 500 });
+}
+
+// ---------------------------------------------------------------- roster panel (host-only)
+export function mountRoster(root, getState, sendFn) {
+  // Load saved roster from localStorage
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem("pc:roster") || "[]"); } catch {}
+  // Default: all players checked
+  if (!saved.length) saved = [...DEFAULT_PLAYERS];
+
+  const save = () => {
+    try { localStorage.setItem("pc:roster", JSON.stringify(saved)); } catch {}
+  };
+
+  const render = () => {
+    const s = getState();
+    const busted = s?.busted || [];
+    const active = s?.players?.map(p => p.name) || [];
+
+    root.innerHTML = `
+      <div class="roster-section">
+        <div class="roster-header">
+          <span class="roster-title">Who's playing tonight?</span>
+          <button class="btn btn-small" data-roster-action="apply">Update table</button>
+        </div>
+        <div class="roster-checks">
+          ${DEFAULT_PLAYERS.map(name => `
+            <label class="roster-check${busted.includes(name) ? " is-busted" : ""}">
+              <input type="checkbox" data-player="${name}" ${saved.includes(name) ? "checked" : ""} ${busted.includes(name) ? "disabled" : ""}>
+              <span>${name}</span>
+              ${busted.includes(name) ? '<span class="bust-badge">OUT</span>' : ""}
+            </label>
+          `).join("")}
+        </div>
+      </div>
+      ${active.length ? `
+      <div class="roster-section" style="margin-top:16px">
+        <div class="roster-header"><span class="roster-title">Bust someone out</span></div>
+        <div class="bust-list">
+          ${active.filter(n => !busted.includes(n)).map(name => `
+            <button class="btn btn-small btn-bust" data-bust="${name}">💀 ${name}</button>
+          `).join("") || '<span style="opacity:0.5;font-size:0.9em">No active players — click Update table first.</span>'}
+        </div>
+      </div>` : ""}`;
+  };
+
+  root.addEventListener("change", (e) => {
+    if (e.target.dataset.player) {
+      const name = e.target.dataset.player;
+      if (e.target.checked) { if (!saved.includes(name)) saved.push(name); }
+      else saved = saved.filter(n => n !== name);
+      save();
+    }
+  });
+
+  root.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.rosterAction === "apply") {
+      sendFn("setPlayers", { players: saved.map(n => ({ name: n })) });
+      return;
+    }
+    if (btn.dataset.bust) {
+      sendFn("bustPlayer", { name: btn.dataset.bust });
+    }
+  });
+
+  render();
+  return { refresh: render };
+}
+
 const TRASH = {
   levelUp: [
     (n, l) => `Level ${n}. Blinds are now ${blindsSpoken(l)}. Short stacks, it's time to make some damn decisions.`,

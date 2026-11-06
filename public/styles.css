@@ -379,3 +379,17 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-bottom-w
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---- player roster ---- */
+.roster-section { }
+.roster-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.roster-title { font-family: var(--ui); font-weight: 700; font-size: 0.85rem; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.roster-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.roster-check { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 0.95rem; user-select: none; transition: background .15s; }
+.roster-check:hover { background: var(--panel-2); }
+.roster-check.is-busted { opacity: .45; text-decoration: line-through; cursor: default; }
+.roster-check input[type="checkbox"] { accent-color: var(--gold, #c9a84c); width: 16px; height: 16px; }
+.bust-badge { font-size: 0.7rem; font-weight: 700; background: #8b0000; color: #fff; padding: 1px 5px; border-radius: 3px; letter-spacing: .05em; }
+.bust-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-bust { background: var(--panel); border: 1px solid #8b0000; color: #ff7070; }
+.btn-bust:hover { background: #3a0000; }

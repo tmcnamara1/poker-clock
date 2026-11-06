@@ -256,6 +256,28 @@ export class Room extends DurableObject {
           event = "settings";
           break;
         }
+        case "setPlayers": {
+          // msg.players = array of { name: string } for everyone at the table
+          const names = Array.isArray(msg.players) ? msg.players : [];
+          s.players = names
+            .slice(0, 20)
+            .map((p) => ({ name: String(p.name || "").trim().slice(0, 24) }))
+            .filter((p) => p.name);
+          s.busted = []; // reset bust list when roster changes
+          event = "players";
+          break;
+        }
+        case "bustPlayer": {
+          // msg.name = player name to mark as busted
+          const bustName = String(msg.name || "").trim();
+          if (!s.players) break;
+          if (!s.busted) s.busted = [];
+          if (bustName && !s.busted.includes(bustName)) {
+            s.busted.push(bustName);
+            event = "bust";
+          }
+          break;
+        }
         case "cancelClock":
           if (s.shot) {
             s.shot = null;

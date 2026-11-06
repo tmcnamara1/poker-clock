@@ -1,8 +1,9 @@
 import {
   RoomConnection, fmtClock, fmtNum, remainingMs, blindsText, timeToBreak, nextPlayingLevel,
   levelNumber, totalLevels, audioUnlock, sounds, say, announce, countdownLine, qrSvg,
-  mountEditor, mountSettings, keepAwake, codeFromPath, store, generateStructure, describeStructure,
-  VOICE_PRESETS, getVoicePresetId, setVoicePresetId,
+  mountEditor, mountSettings, mountRoster, keepAwake, codeFromPath, store,
+  generateStructure, describeStructure, VOICE_PRESETS, getVoicePresetId, setVoicePresetId,
+  maybePlayerCallout, bustCallout,
 } from "/app.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +20,7 @@ let lastShotTick = null;
 let shotTimeUntil = 0;
 let editor = null;
 let settingsPanel = null;
+let rosterPanel = null;
 let spokenCountdowns = new Set(); // tracks which countdown seconds have been spoken this level
 
 // ------------------------------------------------------------ static setup
@@ -143,9 +145,11 @@ function onMessage(msg) {
       onTestSound: () => { audioUnlock(); sounds.levelUp(); announce(state.settings.announcer, "levelUp", { n: 1, level: { sb: 100, bb: 200, ante: 0 }, delay: 2200 }); },
       showVoicePicker: true,
     });
+    rosterPanel = mountRoster($("roster"), () => state, (cmd, x) => conn.send(cmd, x));
   } else if (editor) {
     if (msg.event === "structure" || msg.event === "reset") editor.refresh();
     if (msg.event === "settings") settingsPanel.refresh();
+    if (msg.event === "players" || msg.event === "bust" || msg.event === "reset") rosterPanel?.refresh();
   }
   handleEvent(msg.event, prev);
   render(true);
@@ -166,7 +170,14 @@ function handleEvent(event, prev) {
     } else {
       sounds.levelUp();
       announce(mode, "levelUp", { n: levelNumber(s.levels, s.levelIndex), level: lvl, afterBreak: wasBreak, delay: 2300 });
+      // Maybe roast a specific player after the level-up announcement
+      const activePlayers = s.players?.map(p => p.name) || [];
+      maybePlayerCallout(mode, activePlayers, s.busted || []);
     }
+  } else if (event === "bust") {
+    // Find who just busted (last entry in busted list)
+    const bustedName = s.busted?.[s.busted.length - 1];
+    if (bustedName) bustCallout(mode, bustedName);
   } else if (event === "levelBack") {
     if (!lvl.brk) announce(mode, "levelUp", { n: levelNumber(s.levels, s.levelIndex), level: lvl });
   } else if (event === "finished") {
