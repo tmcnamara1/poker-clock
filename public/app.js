@@ -284,16 +284,6 @@ const COUNTDOWN_TRASH = {
     () => "Twenty seconds and I will strike down upon thee with great vengeance if you tank any longer.",
     () => "Twenty seconds. You in or you out? This isn't a philosophy seminar.",
   ],
-  10: [
-    () => "Ten seconds. English, do you speak it?",
-    () => "Ten seconds. Figure it the hell out.",
-    () => "Ten! Get some balls and play a hand.",
-    () => "Ten seconds left. This is not a drill.",
-    () => "Ten seconds. What's in your wallet? Because it won't be chips for long.",
-    () => "Ten seconds. I have had it. PLAY.",
-    () => "Ten seconds. Does not compute — just bet the damn thing.",
-    () => "Ten seconds. You're a wizard, Harry — so do some fucking magic already.",
-  ],
 };
 
 export function countdownLine(secs, mode) {

@@ -119,7 +119,7 @@ document.querySelector("#hostcontrols .r-grid").addEventListener("click", (e) =>
   const c = b.dataset.cmd;
   if (c === "plus") return send("addTime", { ms: 60000 });
   if (c === "minus") return send("addTime", { ms: -60000 });
-  if (c === "reset" && !confirm("Reset the game back to level 1 and pause the clock?")) return;
+  if (c === "reset" && !confirm("Start a new game? This resets the clock back to level 1 and pauses.")) return;
   send(c);
 });
 

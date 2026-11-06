@@ -319,6 +319,9 @@ function command(c) {
     case "minus": conn.send("addTime", { ms: -60000 }); break;
     case "drawer": $("drawer").classList.toggle("open"); break;
     case "callClock": conn.send("callClock", { name: "" }); break;
+    case "newgame":
+      if (confirm("Start a new game? This resets the clock back to level 1 and pauses.")) conn.send("reset");
+      break;
     default: conn.send(c);
   }
 }
