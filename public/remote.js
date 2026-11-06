@@ -30,6 +30,43 @@ const conn = new RoomConnection(code, hostKey, onMessage, (status) => {
   $("dot").className = `r-dot ${status === "online" ? "online" : status === "offline" ? "offline" : ""}`;
 });
 
+let chopOverlay = null;
+
+function renderChopOverlay() {
+  if (!state) return;
+  const s = state;
+  if (!s.chopFinished) {
+    if (chopOverlay) { chopOverlay.remove(); chopOverlay = null; }
+    return;
+  }
+  if (chopOverlay) return;
+
+  const allNames = (s.players || []).map(p => p.name);
+  const busted = s.busted || [];
+  const winners = allNames.filter(n => !busted.includes(n));
+  const winnerStr = winners.length <= 3
+    ? winners.slice(0, -1).join(", ") + (winners.length > 1 ? " & " + winners[winners.length - 1] : winners[0] || "")
+    : winners.join(", ");
+
+  chopOverlay = document.createElement("div");
+  chopOverlay.className = "chop-overlay";
+  chopOverlay.innerHTML = `
+    <div class="chop-card">
+      <div class="chop-trophy">🏆</div>
+      <h2 class="chop-title">Tournament Over — Chop It!</h2>
+      <div class="chop-winners">${winnerStr || "Winners"}</div>
+      <p class="chop-sub">Split the pot and settle up. Well played.</p>
+      ${role === "host" ? `<button class="btn btn-primary chop-newgame" id="chopnewgame">↺ Start a New Game</button>` : ""}
+    </div>`;
+  document.body.appendChild(chopOverlay);
+
+  if (role === "host") {
+    document.getElementById("chopnewgame").addEventListener("click", () => {
+      if (confirm("Start a new game? This resets the clock back to level 1 and pauses.")) conn.send("reset");
+    });
+  }
+}
+
 function onMessage(msg) {
   const prev = state;
   state = msg.state;
@@ -39,7 +76,9 @@ function onMessage(msg) {
   if (rosterPanel && (msg.event === "players" || msg.event === "bust" || msg.event === "chop" || msg.event === "reset")) rosterPanel.refresh();
   if (msg.event === "levelUp" && navigator.vibrate) navigator.vibrate([120, 80, 120]);
   if (msg.event === "shotStart" && navigator.vibrate) navigator.vibrate(200);
+  if (msg.event === "reset" && chopOverlay) { chopOverlay.remove(); chopOverlay = null; }
   render();
+  renderChopOverlay();
 }
 
 function setRole(r) {

@@ -174,8 +174,17 @@ function onMessage(msg) {
     if (msg.event === "settings") settingsPanel.refresh();
     if (msg.event === "players" || msg.event === "bust" || msg.event === "chop" || msg.event === "reset") rosterPanel?.refresh();
   }
+  // Sync setup table when players change from any source (remote, in-game drawer, reset)
+  if (setupTableCtrl && (msg.event === "players" || msg.event === "reset")) {
+    const serverPlayers = state.players || [];
+    setupTableCtrl.setSeats(serverPlayers);
+    setupRoster = setupTableCtrl.getSeats();
+  }
+  // Dismiss chop overlay on reset
+  if (msg.event === "reset" && chopOverlay) { chopOverlay.remove(); chopOverlay = null; }
   handleEvent(msg.event, prev);
   render(true);
+  renderChopOverlay();
 }
 
 // ------------------------------------------------------------ events → sound + voice
@@ -222,6 +231,44 @@ function handleEvent(event, prev) {
     shotTimeUntil = Date.now() + 3500;
     sounds.buzzer();
     announce(mode, "time", { delay: 900 });
+  }
+}
+
+// ------------------------------------------------------------ chop overlay
+let chopOverlay = null;
+
+function renderChopOverlay() {
+  if (!state) return;
+  const s = state;
+  if (!s.chopFinished) {
+    if (chopOverlay) { chopOverlay.remove(); chopOverlay = null; }
+    return;
+  }
+  if (chopOverlay) return; // already shown
+
+  const allNames = (s.players || []).map(p => p.name);
+  const busted = s.busted || [];
+  const winners = allNames.filter(n => !busted.includes(n));
+  const winnerStr = winners.length <= 3
+    ? winners.slice(0, -1).join(", ") + (winners.length > 1 ? " & " + winners[winners.length - 1] : winners[0] || "")
+    : winners.join(", ");
+
+  chopOverlay = document.createElement("div");
+  chopOverlay.className = "chop-overlay";
+  chopOverlay.innerHTML = `
+    <div class="chop-card">
+      <div class="chop-trophy">🏆</div>
+      <h2 class="chop-title">Tournament Over — Chop It!</h2>
+      <div class="chop-winners">${winnerStr || "Winners"}</div>
+      <p class="chop-sub">Split the pot and settle up. Well played.</p>
+      ${isHost ? `<button class="btn btn-primary chop-newgame" id="chopnewgame">↺ Start a New Game</button>` : ""}
+    </div>`;
+  document.body.appendChild(chopOverlay);
+
+  if (isHost) {
+    document.getElementById("chopnewgame").addEventListener("click", () => {
+      if (confirm("Start a new game? This resets the clock back to level 1 and pauses.")) conn.send("reset");
+    });
   }
 }
 

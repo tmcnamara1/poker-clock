@@ -225,6 +225,8 @@ export class Room extends DurableObject {
           break;
         case "reset":
           s.finished = false;
+          s.chopFinished = false;
+          s.choppedAt = null;
           s.running = false;
           this.goToLevel(0, now);
           event = "reset";
@@ -283,6 +285,13 @@ export class Room extends DurableObject {
             const chopAt = start >= 6 ? 3 : start === 5 ? 2 : 1;
             if (remaining <= chopAt && chopAt > 1) {
               s.choppedAt = remaining; // store how many winners
+              // Pause the clock — tournament is over
+              if (s.running) {
+                s.remainingMs = Math.max(0, s.endsAt - now);
+                s.running = false;
+                s.endsAt = null;
+              }
+              s.chopFinished = true;
               event = "chop";
             } else {
               event = "bust";
