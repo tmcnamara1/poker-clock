@@ -224,11 +224,20 @@ button, input, select { font: inherit; color: inherit; }
 .setup-inprogress b { font-size: 18px; }
 .setup-inprogress span { color: var(--ink-2); }
 .su-preview b { white-space: nowrap; }
-.su-players { display: flex; flex-wrap: wrap; gap: 8px; }
-.su-player-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--bg-2); cursor: pointer; font-size: 15px; font-weight: 600; transition: background .15s, border-color .15s; user-select: none; }
-.su-player-chip input { display: none; }
-.su-player-chip.checked { background: var(--gold); border-color: var(--gold); color: #1b1404; }
-.setup-row-players { align-items: flex-start; padding-top: 16px; border-bottom: none; }
+.setup-row-players { padding-top: 16px; border-bottom: none; }
+.setup-players-label { color: var(--ink-2); font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+
+/* poker table seating widget */
+.table-wrap { position: relative; }
+.poker-table-svg { width: 100%; max-width: 440px; display: block; margin: 0 auto; border-radius: 12px; background: #0a150e; }
+.seat-btn { transition: opacity .15s; }
+.seat-btn:hover circle { stroke-width: 3; }
+.seat-menu { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 4px; justify-content: center; }
+.seat-pick { background: var(--bg-2); border-color: var(--line); }
+.seat-pick.on { background: var(--gold); border-color: var(--gold); color: #1b1404; }
+.table-actions { display: flex; gap: 8px; justify-content: flex-end; padding: 8px 0 4px; }
+.roster-table-wrap { }
+.roster-bust-wrap { }
 @media (max-width: 760px) {
   .setup-grid { grid-template-columns: 1fr; }
   .setup-row { grid-template-columns: 1fr; gap: 8px; }

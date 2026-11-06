@@ -299,7 +299,7 @@ const blindsSpoken = (l) =>
   `${spoken(l.sb)}, ${spoken(l.bb)}` + (l.ante ? `, with an ante of ${spoken(l.ante)}` : "");
 
 // ---------------------------------------------------------------- player roster
-export const DEFAULT_PLAYERS = ["Scotty", "Eddie", "Bywater", "Pels", "Tmac", "Daniels", "Ty"];
+export const DEFAULT_PLAYERS = ["Scotty", "Eddie", "Bywater", "Pelz", "Tmac", "Daniels", "Ty"];
 
 // Per-player trash talk lines. Each array entry is a function so they read naturally.
 // 'bust' fires when the player is eliminated.
@@ -348,18 +348,18 @@ const PLAYER_LINES = {
       () => "Bywater busted. He wants the winner to know: suck it.",
     ],
   },
-  Pels: {
+  Pelz: {
     levelUp: [
-      () => "Pels, you doing okay over there? You seem very relaxed. Very, very relaxed.",
-      () => "New level. Pels would like to know if anyone has any snacks.",
-      () => "Pels is in a great mood. A suspiciously great mood.",
-      () => "Pels is vibing. That's all we'll say about that.",
-      () => "New blinds. Pels isn't stressed about it. Pels isn't stressed about anything.",
+      () => "Pelz, you doing okay over there? You seem very relaxed. Very, very relaxed.",
+      () => "New level. Pelz would like to know if anyone has any snacks.",
+      () => "Pelz is in a great mood. A suspiciously great mood.",
+      () => "Pelz is vibing. That's all we'll say about that.",
+      () => "New blinds. Pelz isn't stressed about it. Pelz isn't stressed about anything.",
     ],
     bust: [
-      () => "Pels is out. He seems fine with it. Very zen. Almost too zen.",
-      () => "Pels has been eliminated and is handling it remarkably well. Suspiciously well.",
-      () => "Pels busted. He's already forgotten it happened.",
+      () => "Pelz is out. He seems fine with it. Very zen. Almost too zen.",
+      () => "Pelz has been eliminated and is handling it remarkably well. Suspiciously well.",
+      () => "Pelz busted. He's already forgotten it happened.",
     ],
   },
   Tmac: {
@@ -464,73 +464,199 @@ export function chopCallout(mode, winners, losers) {
   if (losers.length) say(loserLine, { delay: 5500 });
 }
 
-// ---------------------------------------------------------------- roster panel (host-only)
-export function mountRoster(root, getState, sendFn) {
-  // Load saved roster from localStorage
-  let saved = [];
-  try { saved = JSON.parse(localStorage.getItem("pc:roster") || "[]"); } catch {}
-  // Default: all players checked
-  if (!saved.length) saved = [...DEFAULT_PLAYERS];
+// ---------------------------------------------------------------- table seating + roster panel (host-only)
 
-  const save = () => {
-    try { localStorage.setItem("pc:roster", JSON.stringify(saved)); } catch {}
-  };
+// Seat positions around an oval table (cx,cy as % of viewBox 400×260)
+const SEAT_POS = [
+  { x: 200, y: 14  }, // seat 1  — top center
+  { x: 310, y: 32  }, // seat 2  — top right
+  { x: 378, y: 90  }, // seat 3  — right top
+  { x: 378, y: 170 }, // seat 4  — right bottom
+  { x: 310, y: 228 }, // seat 5  — bottom right
+  { x: 200, y: 246 }, // seat 6  — bottom center
+  { x:  90, y: 228 }, // seat 7  — bottom left
+  { x:  22, y: 170 }, // seat 8  — left bottom
+  { x:  22, y:  90 }, // seat 9  — left top
+  { x:  90, y:  32 }, // seat 10 — top left
+];
 
-  const render = () => {
-    const s = getState();
-    const busted = s?.busted || [];
-    const active = s?.players?.map(p => p.name) || [];
+// Load/save seats: array of { seat:1-10, name:"..." } or null slots
+function loadSeats() {
+  try { return JSON.parse(localStorage.getItem("pc:seats") || "null"); } catch { return null; }
+}
+function saveSeats(seats) {
+  try { localStorage.setItem("pc:seats", JSON.stringify(seats)); } catch {}
+}
+function seatsToRoster(seats) {
+  // Returns array of { seat, name } for occupied seats only, seat-order
+  return seats.map((n, i) => n ? { seat: i + 1, name: n } : null).filter(Boolean);
+}
+function rosterToSeats(roster) {
+  const s = Array(10).fill(null);
+  for (const p of roster) if (p.seat >= 1 && p.seat <= 10) s[p.seat - 1] = p.name;
+  return s;
+}
 
+export function mountTableSeating(root, opts = {}) {
+  // opts: { busted: [], onUpdate(seats), readOnly: false }
+  // seats: array[10] of name|null
+  const saved = loadSeats();
+  let seats = saved || Array(10).fill(null);
+  // If we have a legacy flat roster but no seat data, seat them in order
+  if (!saved) {
+    try {
+      const legacy = JSON.parse(localStorage.getItem("pc:roster") || "[]");
+      legacy.forEach((name, i) => { if (i < 10) seats[i] = name; });
+    } catch {}
+  }
+
+  const busted = () => opts.busted || [];
+  const readOnly = () => !!opts.readOnly;
+
+  function seatSvg() {
+    const W = 400, H = 260;
+    const rX = 162, rY = 108, cX = 200, cY = 130; // felt ellipse radii
+    const felt = `<ellipse cx="${cX}" cy="${cY}" rx="${rX}" ry="${rY}" fill="#1a4a2a" stroke="#2d7a44" stroke-width="3"/>`;
+    const logo = `<text x="${cX}" y="${cY + 6}" text-anchor="middle" font-size="18" font-family="Georgia,serif" fill="#2d7a44" font-style="italic" letter-spacing="1">poker night</text>`;
+
+    const seatEls = SEAT_POS.map(({ x, y }, i) => {
+      const seatNum = i + 1;
+      const name = seats[i];
+      const isBusted = name && busted().includes(name);
+      const isEmpty = !name;
+      const r = 28;
+      const fill = isEmpty ? "#0f1f15" : isBusted ? "#2a0808" : "#0d3320";
+      const stroke = isEmpty ? "#2d5c38" : isBusted ? "#8b0000" : "#4caf76";
+      const sw = isEmpty ? "1.5" : "2";
+      const circle = `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+      const label = isEmpty
+        ? `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" fill="#3a7a4a" font-family="Arial,sans-serif">${seatNum}</text>`
+        : isBusted
+          ? `<text x="${x}" y="${y - 4}" text-anchor="middle" font-size="10" fill="#ff5555" font-family="Arial,sans-serif" font-weight="bold">${name.length > 6 ? name.slice(0, 6) : name}</text>
+             <text x="${x}" y="${y + 9}" text-anchor="middle" font-size="9" fill="#ff4444" font-family="Arial,sans-serif" letter-spacing="1">OUT</text>`
+          : `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="${name.length > 6 ? 10 : 12}" fill="#c8f0d8" font-family="Arial,sans-serif" font-weight="bold">${name}</text>`;
+      const interactive = readOnly() ? "" : ` class="seat-btn" data-seat="${i}" style="cursor:pointer"`;
+      return `<g${interactive}>${circle}${label}</g>`;
+    }).join("");
+
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="poker-table-svg">
+      <rect width="${W}" height="${H}" rx="18" fill="#0a150e"/>
+      ${felt}${logo}${seatEls}
+    </svg>`;
+  }
+
+  function playerMenu(seatIdx) {
+    // Show a small inline picker below the table for this seat
+    const current = seats[seatIdx];
+    const taken = new Set(seats.filter((n, i) => n && i !== seatIdx));
+    const options = [null, ...DEFAULT_PLAYERS.filter(n => !taken.has(n) || n === current)];
+    return options.map(n => {
+      const active = n === current;
+      return `<button class="btn btn-small seat-pick${active ? " on" : ""}" data-pick="${n || ""}" data-for="${seatIdx}">${n || "— empty —"}</button>`;
+    }).join("");
+  }
+
+  let activeMenu = null; // seatIdx of open picker
+
+  function render() {
     root.innerHTML = `
-      <div class="roster-section">
-        <div class="roster-header">
-          <span class="roster-title">Who's playing tonight?</span>
-          <button class="btn btn-small" data-roster-action="apply">Update table</button>
-        </div>
-        <div class="roster-checks">
-          ${DEFAULT_PLAYERS.map(name => `
-            <label class="roster-check${busted.includes(name) ? " is-busted" : ""}">
-              <input type="checkbox" data-player="${name}" ${saved.includes(name) ? "checked" : ""} ${busted.includes(name) ? "disabled" : ""}>
-              <span>${name}</span>
-              ${busted.includes(name) ? '<span class="bust-badge">OUT</span>' : ""}
-            </label>
-          `).join("")}
-        </div>
+      <div class="table-wrap">
+        ${seatSvg()}
+        ${activeMenu !== null && !readOnly() ? `<div class="seat-menu" data-menu="${activeMenu}">${playerMenu(activeMenu)}</div>` : ""}
       </div>
-      ${active.length ? `
-      <div class="roster-section" style="margin-top:16px">
-        <div class="roster-header"><span class="roster-title">Bust someone out</span></div>
-        <div class="bust-list">
-          ${active.filter(n => !busted.includes(n)).map(name => `
-            <button class="btn btn-small btn-bust" data-bust="${name}">💀 ${name}</button>
-          `).join("") || '<span style="opacity:0.5;font-size:0.9em">No active players — click Update table first.</span>'}
-        </div>
+      ${!readOnly() ? `<div class="table-actions">
+        <button class="btn btn-small" data-ta="clear">Clear all seats</button>
+        <button class="btn btn-small btn-primary" data-ta="apply">Set the table</button>
       </div>` : ""}`;
-  };
-
-  root.addEventListener("change", (e) => {
-    if (e.target.dataset.player) {
-      const name = e.target.dataset.player;
-      if (e.target.checked) { if (!saved.includes(name)) saved.push(name); }
-      else saved = saved.filter(n => n !== name);
-      save();
-    }
-  });
+  }
 
   root.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    if (btn.dataset.rosterAction === "apply") {
-      sendFn("setPlayers", { players: saved.map(n => ({ name: n })) });
-      return;
+    if (readOnly()) return;
+    // Seat click — open/close menu
+    const seatEl = e.target.closest("[data-seat]");
+    if (seatEl) {
+      const idx = +seatEl.dataset.seat;
+      activeMenu = activeMenu === idx ? null : idx;
+      render(); return;
     }
-    if (btn.dataset.bust) {
-      sendFn("bustPlayer", { name: btn.dataset.bust });
+    // Player pick from menu
+    const pickBtn = e.target.closest("[data-pick]");
+    if (pickBtn) {
+      const idx = +pickBtn.dataset.for;
+      const name = pickBtn.dataset.pick || null;
+      seats[idx] = name;
+      activeMenu = null;
+      saveSeats(seats);
+      // Also keep legacy pc:roster in sync (names only, ordered by seat)
+      try { localStorage.setItem("pc:roster", JSON.stringify(seatsToRoster(seats).map(p => p.name))); } catch {}
+      opts.onUpdate?.(seatsToRoster(seats));
+      render(); return;
     }
+    // Table actions
+    const ta = e.target.closest("[data-ta]");
+    if (!ta) return;
+    if (ta.dataset.ta === "clear") { seats = Array(10).fill(null); saveSeats(seats); opts.onUpdate?.([]); render(); return; }
+    if (ta.dataset.ta === "apply") { opts.onUpdate?.(seatsToRoster(seats)); }
   });
 
   render();
-  return { refresh: render };
+  return {
+    refresh(newBusted) { if (newBusted) opts.busted = newBusted; render(); },
+    getSeats: () => seatsToRoster(seats),
+    setSeats(roster) { seats = rosterToSeats(roster); render(); },
+  };
+}
+
+// ---------------------------------------------------------------- roster panel (host-only)
+export function mountRoster(root, getState, sendFn) {
+  const tableDiv = document.createElement("div");
+  tableDiv.className = "roster-table-wrap";
+  root.appendChild(tableDiv);
+
+  const bustDiv = document.createElement("div");
+  bustDiv.className = "roster-bust-wrap";
+  root.appendChild(bustDiv);
+
+  const s0 = getState();
+  // Pre-load seat assignments from server state if available, else from localStorage
+  const initSeats = s0?.players?.length ? s0.players : null;
+
+  const tableCtrl = mountTableSeating(tableDiv, {
+    busted: s0?.busted || [],
+    onUpdate(roster) {
+      sendFn("setPlayers", { players: roster });
+    },
+  });
+  if (initSeats) tableCtrl.setSeats(initSeats);
+
+  function renderBust() {
+    const s = getState();
+    const busted = s?.busted || [];
+    const active = (s?.players || []).filter(p => !busted.includes(p.name));
+    bustDiv.innerHTML = active.length
+      ? `<div class="roster-section" style="margin-top:16px">
+          <div class="roster-header"><span class="roster-title">Bust someone out</span></div>
+          <div class="bust-list">
+            ${active.map(p => `<button class="btn btn-small btn-bust" data-bust="${p.name}">💀 ${p.name}</button>`).join("")}
+          </div>
+        </div>`
+      : "";
+  }
+
+  bustDiv.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-bust]");
+    if (btn) sendFn("bustPlayer", { name: btn.dataset.bust });
+  });
+
+  renderBust();
+
+  return {
+    refresh() {
+      const s = getState();
+      tableCtrl.refresh(s?.busted || []);
+      renderBust();
+    },
+  };
 }
 
 const TRASH = {

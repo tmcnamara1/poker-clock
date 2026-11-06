@@ -1,7 +1,7 @@
 import {
   RoomConnection, fmtClock, fmtNum, remainingMs, blindsText, timeToBreak, nextPlayingLevel,
   levelNumber, totalLevels, audioUnlock, sounds, say, announce, countdownLine, qrSvg,
-  mountEditor, mountSettings, mountRoster, keepAwake, codeFromPath, store,
+  mountEditor, mountSettings, mountRoster, mountTableSeating, keepAwake, codeFromPath, store,
   generateStructure, describeStructure, VOICE_PRESETS, getVoicePresetId, setVoicePresetId,
   maybePlayerCallout, bustCallout, chopCallout, DEFAULT_PLAYERS,
 } from "/app.js";
@@ -116,33 +116,22 @@ function paintSetupKeepFocus() {
   if (active && active.tagName === "INPUT") active.value = val;
 }
 
-// ------------------------------------------------------------ setup player picker
-let setupPlayers = [];
-try { setupPlayers = JSON.parse(localStorage.getItem("pc:roster") || "[]"); } catch {}
-if (!setupPlayers.length) setupPlayers = [...DEFAULT_PLAYERS];
+// ------------------------------------------------------------ setup table seating
+let setupRoster = []; // { seat, name } array — updated live as host assigns seats
 
-function paintSetupPlayers() {
-  const container = $("su-players");
-  if (!container) return;
-  container.innerHTML = DEFAULT_PLAYERS.map(name => {
-    const checked = setupPlayers.includes(name);
-    return `<label class="su-player-chip${checked ? " checked" : ""}">
-      <input type="checkbox" data-supl="${name}"${checked ? " checked" : ""}>
-      ${name}
-    </label>`;
-  }).join("");
+let setupTableCtrl = null;
+if (isHost) {
+  const suPlayersEl = $("su-players");
+  if (suPlayersEl) {
+    setupTableCtrl = mountTableSeating(suPlayersEl, {
+      onUpdate(roster) {
+        setupRoster = roster;
+      },
+    });
+    // Trigger initial sync so setupRoster reflects saved seats
+    setupRoster = setupTableCtrl.getSeats();
+  }
 }
-paintSetupPlayers();
-
-$("su-players")?.addEventListener("change", (e) => {
-  const name = e.target.dataset.supl;
-  if (!name) return;
-  if (e.target.checked) { if (!setupPlayers.includes(name)) setupPlayers.push(name); }
-  else setupPlayers = setupPlayers.filter(n => n !== name);
-  try { localStorage.setItem("pc:roster", JSON.stringify(setupPlayers)); } catch {}
-  // Update chip visual
-  e.target.closest(".su-player-chip")?.classList.toggle("checked", e.target.checked);
-});
 
 $("startbtn").addEventListener("click", async () => {
   audioUnlock();
@@ -150,9 +139,9 @@ $("startbtn").addEventListener("click", async () => {
     if (setupTouched && notStarted(state)) {
       conn.send("setStructure", { levels: generateStructure(setup) });
     }
-    // Always set the roster from the setup picker when starting
-    if (notStarted(state) && setupPlayers.length) {
-      conn.send("setPlayers", { players: setupPlayers.map(n => ({ name: n })) });
+    // Send seating assignment when starting a fresh game
+    if (notStarted(state) && setupRoster.length) {
+      conn.send("setPlayers", { players: setupRoster });
     }
   }
   // Remember the chosen level length for the next game

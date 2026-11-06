@@ -261,7 +261,10 @@ export class Room extends DurableObject {
           const names = Array.isArray(msg.players) ? msg.players : [];
           s.players = names
             .slice(0, 20)
-            .map((p) => ({ name: String(p.name || "").trim().slice(0, 24) }))
+            .map((p) => ({
+              name: String(p.name || "").trim().slice(0, 24),
+              seat: Number.isFinite(+p.seat) ? Math.max(1, Math.min(10, Math.round(+p.seat))) : null,
+            }))
             .filter((p) => p.name);
           s.busted = []; // reset bust list when roster changes
           s.startingCount = s.players.length; // remember for chop threshold
