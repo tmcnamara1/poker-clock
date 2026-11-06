@@ -16,9 +16,9 @@ function buildSimple(levelMin, breakMin, startSb = 25, sbStep = 25, count = 20, 
 }
 
 export const PRESETS = {
-  standard: { name: "Standard — 20 min levels", levels: buildSimple(20, 10) },
-  turbo:    { name: "Turbo — 10 min levels",     levels: buildSimple(10, 5)  },
-  deep:     { name: "Deep stack — 30 min levels", levels: buildSimple(30, 15) },
+  standard: { name: "Standard — 8 min levels",   levels: buildSimple(8, 10, 25, 25, 20, 0) },
+  turbo:    { name: "Turbo — 5 min levels",       levels: buildSimple(5, 5, 25, 25, 20, 0)  },
+  deep:     { name: "Deep stack — 15 min levels", levels: buildSimple(15, 10, 25, 25, 20, 0) },
 };
 
 export const DEFAULT_LEVELS = PRESETS.standard.levels;

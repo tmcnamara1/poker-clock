@@ -3,7 +3,7 @@ import {
   levelNumber, totalLevels, audioUnlock, sounds, say, announce, countdownLine, qrSvg,
   mountEditor, mountSettings, mountRoster, keepAwake, codeFromPath, store,
   generateStructure, describeStructure, VOICE_PRESETS, getVoicePresetId, setVoicePresetId,
-  maybePlayerCallout, bustCallout,
+  maybePlayerCallout, bustCallout, chopCallout, DEFAULT_PLAYERS,
 } from "/app.js";
 
 const $ = (id) => document.getElementById(id);
@@ -45,7 +45,7 @@ if (isHost) {
 // ------------------------------------------------------------ setup screen (host, before the game starts)
 // Remember the last level-length the host used so it re-appears next game.
 const savedMin = parseInt(store("pc:levelMin") || "", 10);
-const setup = { startSb: 25, startBb: 50, levelMin: (savedMin >= 1 && savedMin <= 240 ? savedMin : 20), breakAfter: 4, breakMin: 10 };
+const setup = { startSb: 25, startBb: 50, levelMin: (savedMin >= 1 && savedMin <= 240 ? savedMin : 8), breakAfter: 0, breakMin: 10 };
 let setupLoaded = false;
 let setupTouched = false;
 
@@ -116,10 +116,44 @@ function paintSetupKeepFocus() {
   if (active && active.tagName === "INPUT") active.value = val;
 }
 
+// ------------------------------------------------------------ setup player picker
+let setupPlayers = [];
+try { setupPlayers = JSON.parse(localStorage.getItem("pc:roster") || "[]"); } catch {}
+if (!setupPlayers.length) setupPlayers = [...DEFAULT_PLAYERS];
+
+function paintSetupPlayers() {
+  const container = $("su-players");
+  if (!container) return;
+  container.innerHTML = DEFAULT_PLAYERS.map(name => {
+    const checked = setupPlayers.includes(name);
+    return `<label class="su-player-chip${checked ? " checked" : ""}">
+      <input type="checkbox" data-supl="${name}"${checked ? " checked" : ""}>
+      ${name}
+    </label>`;
+  }).join("");
+}
+paintSetupPlayers();
+
+$("su-players")?.addEventListener("change", (e) => {
+  const name = e.target.dataset.supl;
+  if (!name) return;
+  if (e.target.checked) { if (!setupPlayers.includes(name)) setupPlayers.push(name); }
+  else setupPlayers = setupPlayers.filter(n => n !== name);
+  try { localStorage.setItem("pc:roster", JSON.stringify(setupPlayers)); } catch {}
+  // Update chip visual
+  e.target.closest(".su-player-chip")?.classList.toggle("checked", e.target.checked);
+});
+
 $("startbtn").addEventListener("click", async () => {
   audioUnlock();
-  if (isHost && setupTouched && state && notStarted(state)) {
-    conn.send("setStructure", { levels: generateStructure(setup) });
+  if (isHost && state) {
+    if (setupTouched && notStarted(state)) {
+      conn.send("setStructure", { levels: generateStructure(setup) });
+    }
+    // Always set the roster from the setup picker when starting
+    if (notStarted(state) && setupPlayers.length) {
+      conn.send("setPlayers", { players: setupPlayers.map(n => ({ name: n })) });
+    }
   }
   // Remember the chosen level length for the next game
   if (isHost) store("pc:levelMin", String(setup.levelMin));
@@ -149,7 +183,7 @@ function onMessage(msg) {
   } else if (editor) {
     if (msg.event === "structure" || msg.event === "reset") editor.refresh();
     if (msg.event === "settings") settingsPanel.refresh();
-    if (msg.event === "players" || msg.event === "bust" || msg.event === "reset") rosterPanel?.refresh();
+    if (msg.event === "players" || msg.event === "bust" || msg.event === "chop" || msg.event === "reset") rosterPanel?.refresh();
   }
   handleEvent(msg.event, prev);
   render(true);
@@ -178,6 +212,15 @@ function handleEvent(event, prev) {
     // Find who just busted (last entry in busted list)
     const bustedName = s.busted?.[s.busted.length - 1];
     if (bustedName) bustCallout(mode, bustedName);
+  } else if (event === "chop") {
+    // Chop threshold reached — announce winners and encourage the rest
+    const bustedName = s.busted?.[s.busted.length - 1];
+    if (bustedName) bustCallout(mode, bustedName); // first announce the final bust
+    const allNames = s.players?.map(p => p.name) || [];
+    const busted = s.busted || [];
+    const winners = allNames.filter(n => !busted.includes(n));
+    const losers = busted.slice(0, -1); // everyone busted before this last bust
+    setTimeout(() => chopCallout(mode, winners, losers), 2000);
   } else if (event === "levelBack") {
     if (!lvl.brk) announce(mode, "levelUp", { n: levelNumber(s.levels, s.levelIndex), level: lvl });
   } else if (event === "finished") {

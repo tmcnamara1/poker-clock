@@ -264,6 +264,7 @@ export class Room extends DurableObject {
             .map((p) => ({ name: String(p.name || "").trim().slice(0, 24) }))
             .filter((p) => p.name);
           s.busted = []; // reset bust list when roster changes
+          s.startingCount = s.players.length; // remember for chop threshold
           event = "players";
           break;
         }
@@ -274,7 +275,15 @@ export class Room extends DurableObject {
           if (!s.busted) s.busted = [];
           if (bustName && !s.busted.includes(bustName)) {
             s.busted.push(bustName);
-            event = "bust";
+            const remaining = s.players.length - s.busted.length;
+            const start = s.startingCount || s.players.length;
+            const chopAt = start >= 6 ? 3 : start === 5 ? 2 : 1;
+            if (remaining <= chopAt && chopAt > 1) {
+              s.choppedAt = remaining; // store how many winners
+              event = "chop";
+            } else {
+              event = "bust";
+            }
           }
           break;
         }

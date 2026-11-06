@@ -36,7 +36,7 @@ function onMessage(msg) {
   if (msg.role !== role || !prev) setRole(msg.role);
   if (editor && (msg.event === "structure" || msg.event === "reset")) editor.refresh();
   if (settingsPanel && msg.event === "settings") settingsPanel.refresh();
-  if (rosterPanel && (msg.event === "players" || msg.event === "bust" || msg.event === "reset")) rosterPanel.refresh();
+  if (rosterPanel && (msg.event === "players" || msg.event === "bust" || msg.event === "chop" || msg.event === "reset")) rosterPanel.refresh();
   if (msg.event === "levelUp" && navigator.vibrate) navigator.vibrate([120, 80, 120]);
   if (msg.event === "shotStart" && navigator.vibrate) navigator.vibrate(200);
   render();

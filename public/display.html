@@ -68,7 +68,7 @@
           <label>Level length</label>
           <div class="setup-ctl">
             <span class="seg" id="su-minseg">
-              <button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button>
+              <button data-v="8">8</button><button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button>
             </span>
             <span class="su-custom"><input id="su-min" inputmode="numeric" aria-label="Minutes per level"> min</span>
           </div>
@@ -77,10 +77,10 @@
           <label for="su-break">First break</label>
           <div class="setup-ctl">
             <select id="su-break">
+              <option value="0" selected>No breaks</option>
               <option value="2">After level 2</option><option value="3">After level 3</option>
               <option value="4">After level 4</option><option value="5">After level 5</option>
               <option value="6">After level 6</option><option value="8">After level 8</option>
-              <option value="0">No breaks</option>
             </select>
             <span class="su-note" id="su-breaknote"></span>
           </div>
@@ -95,6 +95,11 @@
           </div>
         </div>
         <div class="su-preview" id="su-preview"></div>
+
+        <div class="setup-row setup-row-players" id="su-playerrow">
+          <label>Who's playing?</label>
+          <div class="setup-ctl su-players" id="su-players"></div>
+        </div>
       </div>
       <div class="setup-form setup-inprogress" id="setupinprogress" hidden>
         <b>This game is already underway.</b>

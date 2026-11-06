@@ -436,6 +436,34 @@ export function bustCallout(mode, name) {
   else say(`${name} is out!`, { delay: 500 });
 }
 
+const CHOP_WINNERS = [
+  (names) => `That's the chop! ${names} — you are the last ones standing. Well played, gentlemen. Well played.`,
+  (names) => `We have our winners! ${names} — split the pot and settle it like adults. Congratulations.`,
+  (names) => `And that's a chop! ${names} take the money. The table has spoken.`,
+  (names) => `${names} — you survived the carnage. Congratulations to our winners. The rest of you: better luck next time.`,
+];
+const CHOP_LOSERS_TRASH = [
+  "To everyone who busted out — you gave it your best shot. Your best shot just wasn't good enough tonight.",
+  "For the fallen: there's no shame in losing. Actually, there is a little shame. But you'll be okay.",
+  "Better luck next time, losers. I say that with love. Mostly.",
+  "To the eliminated players: you played your hearts out. Your hearts were also wrong about every hand.",
+];
+const CHOP_LOSERS_PRO = [
+  "To everyone who busted out — thanks for playing. You'll get them next time.",
+  "Great game everyone. For those who didn't make it to the chop, there's always next time.",
+];
+
+export function chopCallout(mode, winners, losers) {
+  if (mode === "off") return;
+  const winnerList = winners.length <= 3
+    ? winners.slice(0, -1).join(", ") + (winners.length > 1 ? " and " + winners[winners.length - 1] : winners[0])
+    : winners.join(", ");
+  const winLine = pick(CHOP_WINNERS)(winnerList);
+  say(winLine, { delay: 800 });
+  const loserLine = mode === "trash" ? pick(CHOP_LOSERS_TRASH)() : pick(CHOP_LOSERS_PRO)();
+  if (losers.length) say(loserLine, { delay: 5500 });
+}
+
 // ---------------------------------------------------------------- roster panel (host-only)
 export function mountRoster(root, getState, sendFn) {
   // Load saved roster from localStorage
