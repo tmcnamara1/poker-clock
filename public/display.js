@@ -17,6 +17,7 @@ let lastShotTick = null;
 let shotTimeUntil = 0;
 let editor = null;
 let settingsPanel = null;
+let spokenCountdowns = new Set(); // tracks which countdown seconds have been spoken this level
 
 // ------------------------------------------------------------ static setup
 document.title = `Poker Clock · ${code}`;
@@ -38,7 +39,9 @@ if (isHost) {
 }
 
 // ------------------------------------------------------------ setup screen (host, before the game starts)
-const setup = { startSb: 25, startBb: 50, levelMin: 20, breakAfter: 4, breakMin: 10 };
+// Remember the last level-length the host used so it re-appears next game.
+const savedMin = parseInt(store("pc:levelMin") || "", 10);
+const setup = { startSb: 25, startBb: 50, levelMin: (savedMin >= 1 && savedMin <= 240 ? savedMin : 20), breakAfter: 4, breakMin: 10 };
 let setupLoaded = false;
 let setupTouched = false;
 
@@ -114,6 +117,8 @@ $("startbtn").addEventListener("click", async () => {
   if (isHost && setupTouched && state && notStarted(state)) {
     conn.send("setStructure", { levels: generateStructure(setup) });
   }
+  // Remember the chosen level length for the next game
+  if (isHost) store("pc:levelMin", String(setup.levelMin));
   started = true;
   $("start").hidden = true;
   keepAwake();
@@ -229,10 +234,26 @@ function render(force) {
 
   // one-minute warning (fires once per level, only when crossing the threshold live)
   const key = `${s.levelIndex}:${s.levelStartedAt}`;
+  if (key !== warnedKey) spokenCountdowns.clear(); // new level — reset countdown tracker
   if (started && warning && warnedKey !== key && rem > warnMs - 3000 && rem > 2000) {
     warnedKey = key;
     sounds.warning();
     announce(s.settings.announcer, "warning", { seconds: s.settings.warnSeconds, delay: 900 });
+  }
+
+  // spoken countdown: 30, 20, 10, 5, 4, 3, 2, 1 seconds left
+  // Skip 30s if the warning chime is set to 30s (avoid double announcement at that threshold)
+  if (started && s.running && !isBreak && s.settings.announcer !== "off") {
+    const secLeft = Math.ceil(rem / 1000);
+    const skip30 = s.settings.warnSeconds === 30;
+    const COUNTDOWN_SECS = [30, 20, 10, 5, 4, 3, 2, 1].filter(t => !(t === 30 && skip30));
+    for (const t of COUNTDOWN_SECS) {
+      if (secLeft === t && !spokenCountdowns.has(t)) {
+        spokenCountdowns.add(t);
+        say(t <= 5 ? String(t) : `${t} seconds`);
+        break;
+      }
+    }
   }
 
   renderShot(now);

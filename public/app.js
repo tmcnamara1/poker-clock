@@ -218,30 +218,51 @@ const blindsSpoken = (l) =>
 
 const TRASH = {
   levelUp: [
-    (n, l) => `Level ${n}. Blinds are now ${blindsSpoken(l)}. Short stacks, it's time to make some decisions.`,
-    (n, l) => `Blinds just went up to ${blindsSpoken(l)}. If you were waiting for aces, I have bad news.`,
+    (n, l) => `Level ${n}. Blinds are now ${blindsSpoken(l)}. Short stacks, it's time to make some damn decisions.`,
+    (n, l) => `Blinds just went up to ${blindsSpoken(l)}. If you were waiting for aces, you're screwed.`,
     (n, l) => `Level ${n}. ${blindsSpoken(l)}. The blinds are coming for you. Every. Single. Orbit.`,
-    (n, l) => `New level. ${blindsSpoken(l)}. Whoever keeps limping, this one's for you.`,
-    (n, l) => `Level ${n}, blinds ${blindsSpoken(l)}. Remember, folding is also a strategy. Not a fun one, but a strategy.`,
-    (n, l) => `Attention table. Blinds are now ${blindsSpoken(l)}. Your stack just got smaller without you doing anything. Congratulations.`,
+    (n, l) => `New level. ${blindsSpoken(l)}. Whoever keeps limping in, this one's especially for you, you cheap bastard.`,
+    (n, l) => `Level ${n}, blinds ${blindsSpoken(l)}. Folding is a strategy. It's YOUR strategy. And it's pathetic.`,
+    (n, l) => `Attention table. Blinds are ${blindsSpoken(l)}. Your stack just got smaller without you doing a damn thing. Congratulations, idiot.`,
+    (n, l) => `Level ${n}. ${blindsSpoken(l)}. If you haven't won a hand yet, maybe poker isn't your game. Try Go Fish.`,
+    (n, l) => `Blinds up. ${blindsSpoken(l)}. For the love of god, somebody play a hand.`,
+    (n, l) => `${blindsSpoken(l)} is the new normal. If your stack can't handle it, that's not a poker problem, that's a you problem.`,
+    (n, l) => `Level ${n}. ${blindsSpoken(l)}. The small blind costs more than your dignity at this point.`,
+    (n, l) => `Blinds are ${blindsSpoken(l)}. Stop slowplaying everything, you coward.`,
+    (n, l) => `Level ${n}! ${blindsSpoken(l)}! Wake the hell up!`,
+    (n, l) => `${blindsSpoken(l)}. If you folded every hand this level, do us all a favor and fold yourself out of the game.`,
+    (n, l) => `Level ${n}. Blinds now ${blindsSpoken(l)}. The antes aren't the only thing bleeding you out tonight.`,
+    (n, l) => `${blindsSpoken(l)}. Another level, another chance for you to make terrible decisions. Go for it.`,
   ],
   breakStart: [
-    (m) => `We're on a ${m} minute break. Go refill your drink and rethink your life choices.`,
-    (m) => `Break time. ${m} minutes. Nobody touch the chips. Yes, I'm talking to you.`,
-    (m) => `${m} minute break. Perfect time to tell everyone about that bad beat. They definitely want to hear it.`,
+    (m) => `${m} minute break. Go pee, get a drink, and rethink every bad call you just made.`,
+    (m) => `Break time. ${m} minutes. Nobody touch the chips. You know who you are.`,
+    (m) => `${m} minute break. Perfect time to tell everyone about that bad beat. They are absolutely dying to hear it.`,
+    (m) => `Break. ${m} minutes. Use this time to find whatever shred of poker skill you left at home.`,
+    (m) => `${m} minute break. Stretch your legs. Rest your brain. Lord knows it's tired from all those bad decisions.`,
   ],
   warning: [
-    () => `One minute left in this level. Steal those blinds while they're cheap.`,
-    () => `Sixty seconds until the blinds go up. Tick tock.`,
-    () => `One minute warning. Whatever you're planning, plan faster.`,
+    () => `One minute left. Steal those blinds before some other jackass does.`,
+    () => `Sixty seconds until the blinds go up. What's your plan, genius?`,
+    () => `One minute warning. Whatever stupid move you're planning, plan it faster.`,
+    () => `Thirty seconds left in this level. Don't do anything dumber than you already have.`,
+    () => `One minute. Tick tock, you indecisive son of a bitch.`,
   ],
   clock: [
     (who) => `${who ? who + " has" : "Someone has"} called the clock. Thirty seconds. Make a decision, Hamlet.`,
-    (who) => `Clock is on. ${who ? who + " is" : "The table is"} tired of waiting. Thirty seconds.`,
-    (who) => `The clock has been called. It's poker, not chess. Thirty seconds.`,
+    (who) => `Clock is on. ${who ? who + " is" : "The whole damn table is"} tired of waiting. Move it.`,
+    (who) => `The clock has been called. It's poker, not a philosophical debate. Thirty seconds.`,
+    (who) => `${who || "Someone"} called the clock. We're all waiting on you. No pressure. Actually, full pressure.`,
   ],
-  time: [() => `Time! Your hand is dead.`, () => `Time! That's what happens when you tank.`],
-  finished: [() => `That's the last level on the clock. Somebody please win already.`],
+  time: [
+    () => `Time! Your hand is dead. Just like your poker career.`,
+    () => `Time! That's what happens when you tank for ten minutes on a two-dollar decision.`,
+    () => `Time! Fold the damn cards already.`,
+  ],
+  finished: [
+    () => `That's the last level on the clock. Somebody please win already so we can all go home.`,
+    () => `Structure's done. If nobody's out yet, you're all playing scared and everyone knows it.`,
+  ],
 };
 
 export function announce(mode, kind, data = {}) {
@@ -420,6 +441,28 @@ export function mountEditor(root, getLevels, onSave) {
   };
 }
 
+// ---------------------------------------------------------------- R-rated warning modal
+function showTrashWarning(onConfirm) {
+  const id = "trash-warning-modal";
+  if (document.getElementById(id)) return;
+  const modal = document.createElement("div");
+  modal.id = id;
+  modal.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px";
+  modal.innerHTML = `
+    <div style="background:#1a1f1d;border:2px solid var(--gold,#c9a84c);border-radius:12px;padding:28px 32px;max-width:420px;text-align:center;color:#e8e0c8">
+      <div style="font-size:2.2rem;margin-bottom:8px">🤬 R-RATED</div>
+      <h2 style="margin:0 0 12px;color:var(--gold,#c9a84c);font-size:1.3rem">You're entering Shit Talk Mode</h2>
+      <p style="margin:0 0 20px;line-height:1.6;font-size:0.95rem">This mode uses strong language, insults, and general jackassery. It's rude on purpose. This is just an app we use internally — don't take it personally. <b>Or do. That's on you.</b></p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button id="trash-confirm" style="background:var(--gold,#c9a84c);color:#0b0f0d;border:none;padding:10px 24px;border-radius:6px;font-weight:700;font-size:1rem;cursor:pointer">I can handle it</button>
+        <button id="trash-cancel" style="background:transparent;color:#e8e0c8;border:1px solid #555;padding:10px 24px;border-radius:6px;font-size:1rem;cursor:pointer">Never mind</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById("trash-confirm").onclick = () => { modal.remove(); onConfirm(true); };
+  document.getElementById("trash-cancel").onclick = () => { modal.remove(); onConfirm(false); };
+}
+
 // ---------------------------------------------------------------- settings panel
 export function mountSettings(root, getSettings, send, { onTestSound } = {}) {
   const render = () => {
@@ -428,6 +471,7 @@ export function mountSettings(root, getSettings, send, { onTestSound } = {}) {
       `<span class="seg" data-key="${key}">${opts
         .map(([v, label]) => `<button data-v="${v}" class="${String(s[key]) === String(v) ? "on" : ""}">${label}</button>`)
         .join("")}</span>`;
+    const trashLabel = `Trash talk <span style="font-size:0.7em;vertical-align:middle;background:#8b0000;color:#fff;padding:1px 5px;border-radius:3px;margin-left:4px">R</span>`;
     root.innerHTML = `
       <div class="field"><label for="st-title">Game title</label><input type="text" id="st-title" maxlength="40" value="${(s.title || "").replace(/"/g, "&quot;")}"></div>
       <div class="field"><label>Announcer voice</label>${seg("announcer", [["pro", "Pro"], ["trash", "Trash talk"], ["off", "Off"]])}</div>
@@ -444,6 +488,17 @@ export function mountSettings(root, getSettings, send, { onTestSound } = {}) {
     if (seg) {
       const key = seg.dataset.key;
       const v = key === "announcer" ? b.dataset.v : Number(b.dataset.v);
+      // Show R-rated warning before enabling trash talk
+      if (key === "announcer" && v === "trash" && getSettings().announcer !== "trash") {
+        showTrashWarning((confirmed) => {
+          if (confirmed) {
+            send("setSettings", { settings: { [key]: v } });
+            seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+          }
+          // If not confirmed, leave the current selection as-is
+        });
+        return;
+      }
       send("setSettings", { settings: { [key]: v } });
       seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     }
