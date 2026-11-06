@@ -186,30 +186,122 @@ export const sounds = {
 // ---------------------------------------------------------------- announcer
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-let chosenVoice = null;
-function voice() {
-  if (chosenVoice) return chosenVoice;
-  const voices = speechSynthesis.getVoices().filter((v) => v.lang && v.lang.startsWith("en"));
-  chosenVoice =
-    voices.find((v) => /Daniel|Google UK English Male|Alex|Aaron|Guy|Davis/i.test(v.name)) ||
-    voices.find((v) => v.lang === "en-US") ||
-    voices[0] ||
-    null;
-  return chosenVoice;
+// Voice presets: each is a priority list of name patterns + tuning options.
+// The browser picks whichever installed voice matches first.
+export const VOICE_PRESETS = [
+  {
+    id: "auto",
+    label: "Auto",
+    patterns: [/Daniel|Google UK English Male|Alex|Aaron|Guy|Davis/i],
+    lang: "en-US",
+    rate: 0.98, pitch: 0.95,
+  },
+  {
+    id: "deep",
+    label: "Deep & Slow",
+    patterns: [/Google UK English Male|Daniel|Alex|Aaron|Guy|Davis|Fred|Bruce/i],
+    lang: "en-US",
+    rate: 0.82, pitch: 0.7,
+  },
+  {
+    id: "fast",
+    label: "Fast & Energetic",
+    patterns: [/Google US English|Samantha|Karen|Zira|Aria/i],
+    lang: "en-US",
+    rate: 1.18, pitch: 1.1,
+  },
+  {
+    id: "british",
+    label: "British",
+    patterns: [/Daniel|Google UK English Male|Google UK English Female|Kate|Serena|Oliver/i],
+    lang: "en-GB",
+    rate: 0.95, pitch: 1.0,
+  },
+  {
+    id: "woman",
+    label: "Woman",
+    patterns: [/Samantha|Karen|Google US English Female|Zira|Aria|Ava|Victoria|Allison|Susan|Nicky/i],
+    lang: "en-US",
+    rate: 1.0, pitch: 1.15,
+  },
+];
+
+let _voicePresetId = null;
+try { _voicePresetId = localStorage.getItem("pc:voicePreset") || "auto"; } catch {}
+
+export function getVoicePresetId() { return _voicePresetId || "auto"; }
+export function setVoicePresetId(id) {
+  _voicePresetId = id;
+  try { localStorage.setItem("pc:voicePreset", id); } catch {}
 }
-if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => { chosenVoice = null; };
+
+function resolveVoice() {
+  const preset = VOICE_PRESETS.find(p => p.id === _voicePresetId) || VOICE_PRESETS[0];
+  const all = ("speechSynthesis" in window) ? speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith("en")) : [];
+  let match = null;
+  for (const pat of preset.patterns) {
+    match = all.find(v => pat.test(v.name));
+    if (match) break;
+  }
+  if (!match) match = all.find(v => v.lang === (preset.lang || "en-US")) || all[0] || null;
+  return { voice: match, rate: preset.rate, pitch: preset.pitch };
+}
+
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
 
 export function say(text, { delay = 0 } = {}) {
   if (!("speechSynthesis" in window) || !text) return;
   setTimeout(() => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    const v = voice();
-    if (v) u.voice = v;
-    u.rate = 0.98;
-    u.pitch = 0.95;
+    const { voice, rate, pitch } = resolveVoice();
+    if (voice) u.voice = voice;
+    u.rate = rate;
+    u.pitch = pitch;
     speechSynthesis.speak(u);
   }, delay);
+}
+
+// ---------------------------------------------------------------- countdown lines
+const COUNTDOWN_TRASH = {
+  30: [
+    () => "Thirty seconds. Tick tock, motherfucker.",
+    () => "Thirty seconds left. I suggest you think fast.",
+    () => "Thirty seconds until the blinds eat you alive.",
+    () => "Half a minute. Whatever you're holding, it won't save you.",
+    () => "Thirty seconds. Say what again. SAY what again.",
+    () => "Half a minute. Does he look like a bitch? Do you? Then act like it and fold.",
+    () => "Thirty seconds left. English, motherfucker — do you speak it? Then use it. Play.",
+  ],
+  20: [
+    () => "Twenty seconds. You better pray to whatever god you believe in.",
+    () => "Twenty seconds, jackass. Move it.",
+    () => "Twenty seconds left. If you don't have a plan, you are the plan.",
+    () => "Twenty seconds. You feel that? That's the blinds breathing down your neck.",
+    () => "Twenty seconds. The path of the righteous man is making a goddamn decision.",
+    () => "Twenty seconds. I'm tired of these motherfucking tanks on this motherfucking table. MOVE.",
+    () => "Twenty seconds. Hold onto your butts.",
+    () => "Twenty seconds and I will strike down upon thee with great vengeance if you tank any longer.",
+    () => "Twenty seconds. You in or you out? This isn't a philosophy seminar.",
+  ],
+  10: [
+    () => "Ten seconds. English, do you speak it?",
+    () => "Ten seconds. Figure it the hell out.",
+    () => "Ten! Get some balls and play a hand.",
+    () => "Ten seconds left. This is not a drill.",
+    () => "Ten seconds. What's in your wallet? Because it won't be chips for long.",
+    () => "Ten seconds. I have had it. PLAY.",
+    () => "Ten seconds. Does not compute — just bet the damn thing.",
+    () => "Ten seconds. You're a wizard, Harry — so do some fucking magic already.",
+  ],
+};
+
+export function countdownLine(secs, mode) {
+  if (mode === "trash" && COUNTDOWN_TRASH[secs]) {
+    return pick(COUNTDOWN_TRASH[secs])();
+  }
+  if (secs <= 5) return String(secs);
+  return `${secs} seconds`;
 }
 
 const spoken = (n) => fmtNum(n);
@@ -247,6 +339,9 @@ const TRASH = {
     () => `One minute warning. Whatever stupid move you're planning, plan it faster.`,
     () => `Thirty seconds left in this level. Don't do anything dumber than you already have.`,
     () => `One minute. Tick tock, you indecisive son of a bitch.`,
+    () => `One minute. You feel me? You FEEL me? The blinds. Are. COMING.`,
+    () => `Sixty seconds. You know what they say about a man who can't make a decision? He goes home broke.`,
+    () => `One minute warning. Get busy playing, or get busy busting out.`,
   ],
   clock: [
     (who) => `${who ? who + " has" : "Someone has"} called the clock. Thirty seconds. Make a decision, Hamlet.`,
@@ -464,17 +559,24 @@ function showTrashWarning(onConfirm) {
 }
 
 // ---------------------------------------------------------------- settings panel
-export function mountSettings(root, getSettings, send, { onTestSound } = {}) {
+export function mountSettings(root, getSettings, send, { onTestSound, showVoicePicker } = {}) {
   const render = () => {
     const s = getSettings();
     const seg = (key, opts) =>
       `<span class="seg" data-key="${key}">${opts
         .map(([v, label]) => `<button data-v="${v}" class="${String(s[key]) === String(v) ? "on" : ""}">${label}</button>`)
         .join("")}</span>`;
-    const trashLabel = `Trash talk <span style="font-size:0.7em;vertical-align:middle;background:#8b0000;color:#fff;padding:1px 5px;border-radius:3px;margin-left:4px">R</span>`;
+    const curVoice = getVoicePresetId();
+    const voiceButtons = VOICE_PRESETS.map(p =>
+      `<button data-voice="${p.id}" class="btn btn-small${curVoice === p.id ? " on" : ""}">${p.label}</button>`
+    ).join("");
+    const voiceRow = showVoicePicker
+      ? `<div class="field"><label>Voice style <span style="font-size:0.8em;opacity:0.7">(saved on this screen)</span></label><span class="seg" data-key="voicePreset">${voiceButtons}</span></div>`
+      : "";
     root.innerHTML = `
       <div class="field"><label for="st-title">Game title</label><input type="text" id="st-title" maxlength="40" value="${(s.title || "").replace(/"/g, "&quot;")}"></div>
       <div class="field"><label>Announcer voice</label>${seg("announcer", [["pro", "Pro"], ["trash", "Trash talk"], ["off", "Off"]])}</div>
+      ${voiceRow}
       <div class="field"><label>Warning before blinds go up</label>${seg("warnSeconds", [[0, "Off"], [30, "30s"], [60, "1m"], [120, "2m"]])}</div>
       <div class="field"><label>Call the Clock length</label>${seg("shotSeconds", [[20, "20s"], [30, "30s"], [45, "45s"], [60, "60s"]])}</div>
       ${onTestSound ? `<div class="field"><label>Test sound + voice</label><button class="btn btn-small" data-test>Play test</button></div>` : ""}
@@ -484,9 +586,16 @@ export function mountSettings(root, getSettings, send, { onTestSound } = {}) {
     const b = e.target.closest("button");
     if (!b) return;
     if (b.hasAttribute("data-test")) return onTestSound && onTestSound();
+    // Voice preset (local-only, not sent to server)
+    if (b.dataset.voice) {
+      setVoicePresetId(b.dataset.voice);
+      b.closest(".seg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+      return;
+    }
     const seg = b.closest(".seg");
     if (seg) {
       const key = seg.dataset.key;
+      if (key === "voicePreset") return; // handled above
       const v = key === "announcer" ? b.dataset.v : Number(b.dataset.v);
       // Show R-rated warning before enabling trash talk
       if (key === "announcer" && v === "trash" && getSettings().announcer !== "trash") {

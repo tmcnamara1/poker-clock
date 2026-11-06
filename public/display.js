@@ -1,7 +1,8 @@
 import {
   RoomConnection, fmtClock, fmtNum, remainingMs, blindsText, timeToBreak, nextPlayingLevel,
-  levelNumber, totalLevels, audioUnlock, sounds, announce, qrSvg, mountEditor, mountSettings,
-  keepAwake, codeFromPath, store, generateStructure, describeStructure,
+  levelNumber, totalLevels, audioUnlock, sounds, say, announce, countdownLine, qrSvg,
+  mountEditor, mountSettings, keepAwake, codeFromPath, store, generateStructure, describeStructure,
+  VOICE_PRESETS, getVoicePresetId, setVoicePresetId,
 } from "/app.js";
 
 const $ = (id) => document.getElementById(id);
@@ -13,6 +14,7 @@ let state = null;
 let conn = null;
 let started = false; // user has clicked the start overlay (audio unlocked)
 let warnedKey = null;
+let countdownKey = null; // level key for countdown — separate from warnedKey
 let lastShotTick = null;
 let shotTimeUntil = 0;
 let editor = null;
@@ -139,6 +141,7 @@ function onMessage(msg) {
     editor = mountEditor($("editor"), () => state.levels, (levels) => conn.send("setStructure", { levels }));
     settingsPanel = mountSettings($("settings"), () => state.settings, (cmd, x) => conn.send(cmd, x), {
       onTestSound: () => { audioUnlock(); sounds.levelUp(); announce(state.settings.announcer, "levelUp", { n: 1, level: { sb: 100, bb: 200, ante: 0 }, delay: 2200 }); },
+      showVoicePicker: true,
     });
   } else if (editor) {
     if (msg.event === "structure" || msg.event === "reset") editor.refresh();
@@ -234,7 +237,6 @@ function render(force) {
 
   // one-minute warning (fires once per level, only when crossing the threshold live)
   const key = `${s.levelIndex}:${s.levelStartedAt}`;
-  if (key !== warnedKey) spokenCountdowns.clear(); // new level — reset countdown tracker
   if (started && warning && warnedKey !== key && rem > warnMs - 3000 && rem > 2000) {
     warnedKey = key;
     sounds.warning();
@@ -242,7 +244,11 @@ function render(force) {
   }
 
   // spoken countdown: 30, 20, 10, 5, 4, 3, 2, 1 seconds left
-  // Skip 30s if the warning chime is set to 30s (avoid double announcement at that threshold)
+  // Uses its own key so it never accidentally clears on warnedKey mismatch.
+  if (key !== countdownKey) {
+    countdownKey = key;
+    spokenCountdowns.clear();
+  }
   if (started && s.running && !isBreak && s.settings.announcer !== "off") {
     const secLeft = Math.ceil(rem / 1000);
     const skip30 = s.settings.warnSeconds === 30;
@@ -250,7 +256,8 @@ function render(force) {
     for (const t of COUNTDOWN_SECS) {
       if (secLeft === t && !spokenCountdowns.has(t)) {
         spokenCountdowns.add(t);
-        say(t <= 5 ? String(t) : `${t} seconds`);
+        const line = countdownLine(t, s.settings.announcer);
+        say(line);
         break;
       }
     }
